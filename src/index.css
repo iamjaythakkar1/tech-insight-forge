@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,19 +36,12 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -88,6 +82,28 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  .reading {
+    --background: 250 246 234;
+    --foreground: 41 37 36;
+    --card: 254 252 232;
+    --card-foreground: 41 37 36;
+    --popover: 254 252 232;
+    --popover-foreground: 41 37 36;
+    --primary: 120 53% 15%;
+    --primary-foreground: 250 246 234;
+    --secondary: 245 230 203;
+    --secondary-foreground: 41 37 36;
+    --muted: 245 230 203;
+    --muted-foreground: 92 45% 27%;
+    --accent: 245 230 203;
+    --accent-foreground: 41 37 36;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 250 246 234;
+    --border: 220 190 130;
+    --input: 220 190 130;
+    --ring: 120 53% 15%;
+  }
 }
 
 @layer base {
@@ -98,4 +114,99 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer utilities {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground));
+}
+
+/* Video container responsive */
+.video-container {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+/* Code block styling */
+.code-block {
+  position: relative;
+}
+
+.code-block button:hover {
+  background: #475569 !important;
+}
+
+/* Reading mode specific styles */
+.reading .prose {
+  --tw-prose-body: rgb(41 37 36);
+  --tw-prose-headings: rgb(41 37 36);
+  --tw-prose-links: rgb(120 53% 15%);
+  --tw-prose-bold: rgb(41 37 36);
+  --tw-prose-counters: rgb(92 45% 27%);
+  --tw-prose-bullets: rgb(92 45% 27%);
+  --tw-prose-hr: rgb(220 190 130);
+  --tw-prose-quotes: rgb(41 37 36);
+  --tw-prose-quote-borders: rgb(220 190 130);
+  --tw-prose-captions: rgb(92 45% 27%);
+  --tw-prose-code: rgb(41 37 36);
+  --tw-prose-pre-code: rgb(41 37 36);
+  --tw-prose-pre-bg: rgb(245 230 203);
+  --tw-prose-th-borders: rgb(220 190 130);
+  --tw-prose-td-borders: rgb(245 230 203);
 }
