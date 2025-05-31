@@ -183,13 +183,62 @@
   border-radius: 8px;
 }
 
-/* Code block styling */
+/* Enhanced Code block styling */
 .code-block {
   position: relative;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
-.code-block button:hover {
-  background: #475569 !important;
+.code-block pre {
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.code-block code {
+  font-family: inherit;
+  color: inherit;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  display: block;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* Syntax highlighting colors */
+.code-block .token.comment {
+  color: #64748b;
+  font-style: italic;
+}
+
+.code-block .token.keyword {
+  color: #3b82f6;
+  font-weight: bold;
+}
+
+.code-block .token.string {
+  color: #10b981;
+}
+
+.code-block .token.number {
+  color: #f59e0b;
+}
+
+.code-block .token.function {
+  color: #8b5cf6;
+}
+
+.code-block .token.operator {
+  color: #ef4444;
+}
+
+.code-block .token.variable {
+  color: #06b6d4;
 }
 
 /* Reading mode specific styles */
@@ -209,4 +258,20 @@
   --tw-prose-pre-bg: rgb(245 230 203);
   --tw-prose-th-borders: rgb(220 190 130);
   --tw-prose-td-borders: rgb(245 230 203);
+}
+
+/* Custom prose styles for better code blocks */
+.prose .code-block {
+  margin: 1.5rem 0;
+}
+
+.prose pre {
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.prose code {
+  font-weight: normal !important;
 }

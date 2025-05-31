@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Navigation } from "@/components/Navigation";
-import { Calendar, User, Clock, ArrowLeft, MessageCircle, Reply, Heart } from "lucide-react";
+import { Calendar, User, Clock, ArrowLeft, MessageCircle, Reply } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,10 +29,10 @@ interface BlogPost {
 interface Comment {
   id: string;
   content: string;
-  author_name: string;
+  author_name: string | null;
   author_id: string | null;
   created_at: string;
-  replies: Comment[];
+  replies?: Comment[];
 }
 
 const BlogPost = () => {
@@ -185,6 +185,80 @@ const BlogPost = () => {
     }
   };
 
+  const processContent = (content: string) => {
+    // Enhanced content processing with better code block styling
+    let html = content
+      // Headers
+      .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-6">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mb-6 mt-8">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-8 mt-10">$1</h1>')
+      
+      // Bold and Italic
+      .replace(/\*\*(.*)\*\*/gim, '<strong class="font-bold">$1</strong>')
+      .replace(/\*(.*)\*/gim, '<em class="italic">$1</em>')
+      
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">$1</a>')
+      
+      // Images
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg" />')
+      
+      // Enhanced Code blocks with syntax highlighting and copy button
+      .replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
+        const codeId = Math.random().toString(36).substr(2, 9);
+        return `<div class="code-block relative bg-slate-900 rounded-lg my-6 overflow-hidden shadow-lg border border-slate-700">
+          <div class="flex items-center justify-between bg-slate-800 px-4 py-3 border-b border-slate-700">
+            <span class="text-slate-300 text-sm font-medium">${lang || 'code'}</span>
+            <button 
+              onclick="copyToClipboard('${codeId}', this)" 
+              class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded text-xs font-medium transition-colors"
+              title="Copy code"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              Copy
+            </button>
+          </div>
+          <pre class="p-4 overflow-x-auto"><code id="${codeId}" class="text-slate-100 text-sm leading-relaxed">${code.trim()}</code></pre>
+        </div>
+        <script>
+          function copyToClipboard(codeId, button) {
+            const code = document.getElementById(codeId).textContent;
+            navigator.clipboard.writeText(code).then(() => {
+              const originalText = button.innerHTML;
+              button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Copied!';
+              button.classList.add('bg-green-600', 'hover:bg-green-700');
+              button.classList.remove('bg-slate-700', 'hover:bg-slate-600');
+              setTimeout(() => {
+                button.innerHTML = originalText;
+                button.classList.remove('bg-green-600', 'hover:bg-green-700');
+                button.classList.add('bg-slate-700', 'hover:bg-slate-600');
+              }, 2000);
+            });
+          }
+        </script>`;
+      })
+      
+      // Inline code
+      .replace(/`([^`]+)`/gim, '<code class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-2 py-1 rounded text-sm font-mono">$1</code>')
+      
+      // Lists
+      .replace(/^\* (.+)$/gim, '<li class="mb-2">$1</li>')
+      .replace(/^(\d+)\. (.+)$/gim, '<li class="mb-2">$1. $2</li>')
+      
+      // Blockquotes
+      .replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-6 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-r">$1</blockquote>')
+      
+      // Line breaks
+      .replace(/\n/gim, '<br />');
+
+    // Wrap consecutive list items
+    html = html.replace(/(<li[^>]*>.*<\/li>)/gims, '<ul class="list-disc pl-6 mb-4">$1</ul>');
+    
+    return html;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -261,7 +335,7 @@ const BlogPost = () => {
         </div>
 
         <div className="prose prose-lg max-w-none dark:prose-invert mb-16">
-          <div dangerouslySetInnerHTML={{ __html: post.content }} />
+          <div dangerouslySetInnerHTML={{ __html: processContent(post.content) }} />
         </div>
 
         {/* Comments Section */}
@@ -346,7 +420,7 @@ const BlogPost = () => {
                   )}
 
                   {/* Replies */}
-                  {comment.replies.length > 0 && (
+                  {comment.replies && comment.replies.length > 0 && (
                     <div className="mt-4 pl-6 border-l-2 border-slate-200 space-y-4">
                       {comment.replies.map((reply) => (
                         <div key={reply.id} className="flex items-start gap-3">
