@@ -9,139 +9,192 @@ import { Input } from "@/components/ui/input";
 import { Navigation } from "@/components/Navigation";
 import { Calendar, User, Clock, ArrowLeft, MessageCircle, Reply, Heart } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Dummy blog data (in real app, this would come from database)
-const blogPosts = [
-  {
-    id: 1,
-    title: "The Future of React: Server Components and Beyond",
-    content: `
-      <p>React Server Components represent a paradigm shift in how we build React applications. They allow us to render components on the server, reducing bundle size and improving performance.</p>
-      
-      <h2>What are Server Components?</h2>
-      <p>Server Components are React components that run on the server and never ship to the client. This means they can access server-side resources directly, such as databases, file systems, or APIs.</p>
-      
-      <pre><code>
-// Example of a Server Component
-async function BlogPost({ id }) {
-  const post = await db.posts.findById(id);
-  
-  return (
-    <article>
-      <h1>{post.title}</h1>
-      <p>{post.content}</p>
-    </article>
-  );
+interface BlogPost {
+  id: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  slug: string;
+  created_at: string;
+  read_time: number;
+  categories: {
+    name: string;
+    color: string;
+  } | null;
 }
-      </code></pre>
-      
-      <h2>Benefits of Server Components</h2>
-      <ul>
-        <li><strong>Reduced Bundle Size:</strong> Server Components don't ship to the client</li>
-        <li><strong>Better Performance:</strong> Data fetching happens on the server</li>
-        <li><strong>Improved SEO:</strong> Content is rendered on the server</li>
-        <li><strong>Direct Database Access:</strong> No need for API endpoints</li>
-      </ul>
-      
-      <h2>The Future</h2>
-      <p>As React Server Components mature, we'll see even more innovative patterns emerge. The combination of server and client components will enable us to build applications that are both performant and interactive.</p>
-    `,
-    category: "React",
-    author: "Tech Insider",
-    date: "2024-05-30",
-    image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=1200&h=600&fit=crop",
-    readTime: "8 min read"
-  }
-];
 
-const dummyComments = [
-  {
-    id: 1,
-    author: "Developer123",
-    content: "Great article! Server Components are definitely the future of React development.",
-    date: "2024-05-30",
-    likes: 5,
-    replies: [
-      {
-        id: 11,
-        author: "Anonymous",
-        content: "I agree! The performance benefits are huge.",
-        date: "2024-05-30",
-        likes: 2
-      }
-    ]
-  },
-  {
-    id: 2,
-    author: "Anonymous",
-    content: "Can you provide more examples of when to use Server Components vs Client Components?",
-    date: "2024-05-30",
-    likes: 3,
-    replies: []
-  }
-];
+interface Comment {
+  id: string;
+  content: string;
+  author_name: string;
+  author_id: string | null;
+  created_at: string;
+  replies: Comment[];
+}
 
 const BlogPost = () => {
   const { id } = useParams();
-  const [post, setPost] = useState(null);
-  const [comments, setComments] = useState(dummyComments);
+  const { user } = useAuth();
+  const [post, setPost] = useState<BlogPost | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [commenterName, setCommenterName] = useState("");
-  const [replyTo, setReplyTo] = useState(null);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  const [isLoggedIn] = useState(false); // This will be managed by auth context later
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // In real app, fetch post from database
-    const foundPost = blogPosts.find(p => p.id === parseInt(id));
-    setPost(foundPost);
+    if (id) {
+      fetchPost();
+      fetchComments();
+    }
   }, [id]);
 
-  const handleAddComment = () => {
+  const fetchPost = async () => {
+    if (!id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('blogs')
+        .select(`
+          id,
+          title,
+          content,
+          excerpt,
+          slug,
+          created_at,
+          read_time,
+          categories (
+            name,
+            color
+          )
+        `)
+        .or(`id.eq.${id},slug.eq.${id}`)
+        .eq('status', 'published')
+        .single();
+
+      if (error) throw error;
+      setPost(data);
+    } catch (error) {
+      console.error('Error fetching post:', error);
+      setPost(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchComments = async () => {
+    if (!id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('blog_id', id)
+        .is('parent_id', null)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Fetch replies for each comment
+      const commentsWithReplies = await Promise.all(
+        data.map(async (comment) => {
+          const { data: replies, error: repliesError } = await supabase
+            .from('comments')
+            .select('*')
+            .eq('parent_id', comment.id)
+            .order('created_at', { ascending: true });
+
+          if (repliesError) throw repliesError;
+
+          return {
+            ...comment,
+            replies: replies || []
+          };
+        })
+      );
+
+      setComments(commentsWithReplies);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
+
+  const handleAddComment = async () => {
     if (!newComment.trim()) {
       toast.error("Please enter a comment");
       return;
     }
 
-    const comment = {
-      id: Date.now(),
-      author: isLoggedIn ? "Current User" : (commenterName || "Anonymous"),
-      content: newComment,
-      date: new Date().toISOString().split('T')[0],
-      likes: 0,
-      replies: []
-    };
+    if (!user && !commenterName.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
 
-    setComments([comment, ...comments]);
-    setNewComment("");
-    setCommenterName("");
-    toast.success("Comment added successfully!");
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert([{
+          blog_id: post?.id,
+          content: newComment.trim(),
+          author_name: user ? null : commenterName.trim(),
+          author_id: user?.id || null
+        }]);
+
+      if (error) throw error;
+
+      setNewComment("");
+      setCommenterName("");
+      toast.success("Comment added successfully!");
+      fetchComments();
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast.error('Failed to add comment');
+    }
   };
 
-  const handleAddReply = (commentId) => {
+  const handleAddReply = async (commentId: string) => {
     if (!replyContent.trim()) {
       toast.error("Please enter a reply");
       return;
     }
 
-    const reply = {
-      id: Date.now(),
-      author: isLoggedIn ? "Current User" : "Anonymous",
-      content: replyContent,
-      date: new Date().toISOString().split('T')[0],
-      likes: 0
-    };
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert([{
+          blog_id: post?.id,
+          parent_id: commentId,
+          content: replyContent.trim(),
+          author_name: user ? null : "Anonymous",
+          author_id: user?.id || null
+        }]);
 
-    setComments(comments.map(comment => 
-      comment.id === commentId 
-        ? { ...comment, replies: [...comment.replies, reply] }
-        : comment
-    ));
+      if (error) throw error;
 
-    setReplyContent("");
-    setReplyTo(null);
-    toast.success("Reply added successfully!");
+      setReplyContent("");
+      setReplyTo(null);
+      toast.success("Reply added successfully!");
+      fetchComments();
+    } catch (error) {
+      console.error('Error adding reply:', error);
+      toast.error('Failed to add reply');
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <Navigation />
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -163,7 +216,7 @@ const BlogPost = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 reading:bg-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Navigation />
       
       <article className="max-w-4xl mx-auto px-6 py-12">
@@ -173,39 +226,46 @@ const BlogPost = () => {
         </Link>
 
         <div className="mb-8">
-          <Badge className="mb-4">{post.category}</Badge>
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-slate-800 dark:text-white reading:text-amber-900">
+          {post.categories && (
+            <Badge 
+              className="mb-4"
+              style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
+            >
+              {post.categories.name}
+            </Badge>
+          )}
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-slate-800 dark:text-white">
             {post.title}
           </h1>
           
-          <div className="flex items-center gap-6 text-slate-600 dark:text-slate-300 reading:text-amber-700 mb-8">
+          <div className="flex items-center gap-6 text-slate-600 dark:text-slate-300 mb-8">
             <span className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              {post.author}
+              Author
             </span>
             <span className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              {new Date(post.date).toLocaleDateString()}
+              {new Date(post.created_at).toLocaleDateString()}
             </span>
             <span className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              {post.readTime}
+              {post.read_time} min read
             </span>
           </div>
 
-          <img 
-            src={post.image} 
-            alt={post.title}
-            className="w-full h-96 object-cover rounded-lg mb-8"
-          />
+          {post.excerpt && (
+            <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 italic">
+              {post.excerpt}
+            </p>
+          )}
         </div>
 
-        <div className="prose prose-lg max-w-none dark:prose-invert reading:prose-amber">
+        <div className="prose prose-lg max-w-none dark:prose-invert mb-16">
           <div dangerouslySetInnerHTML={{ __html: post.content }} />
         </div>
 
         {/* Comments Section */}
-        <section className="mt-16 border-t border-slate-200 dark:border-slate-700 pt-8">
+        <section className="border-t border-slate-200 dark:border-slate-700 pt-8">
           <h2 className="text-2xl font-bold mb-8 flex items-center gap-2">
             <MessageCircle className="h-6 w-6" />
             Comments ({comments.length})
@@ -215,7 +275,7 @@ const BlogPost = () => {
           <Card className="mb-8">
             <CardContent className="p-6">
               <h3 className="font-semibold mb-4">Leave a Comment</h3>
-              {!isLoggedIn && (
+              {!user && (
                 <Input
                   placeholder="Your name (optional)"
                   value={commenterName}
@@ -244,27 +304,23 @@ const BlogPost = () => {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {comment.author.charAt(0).toUpperCase()}
+                        {(comment.author_name || 'A').charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <span className="font-semibold">{comment.author}</span>
-                        <span className="text-slate-500 text-sm ml-2">{comment.date}</span>
+                        <span className="font-semibold">{comment.author_name || 'Anonymous'}</span>
+                        <span className="text-slate-500 text-sm ml-2">
+                          {new Date(comment.created_at).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm">
-                        <Heart className="h-4 w-4 mr-1" />
-                        {comment.likes}
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
-                      >
-                        <Reply className="h-4 w-4 mr-1" />
-                        Reply
-                      </Button>
-                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
+                    >
+                      <Reply className="h-4 w-4 mr-1" />
+                      Reply
+                    </Button>
                   </div>
                   <p className="text-slate-700 dark:text-slate-300 mb-4">{comment.content}</p>
 
@@ -295,12 +351,14 @@ const BlogPost = () => {
                       {comment.replies.map((reply) => (
                         <div key={reply.id} className="flex items-start gap-3">
                           <div className="w-6 h-6 bg-slate-400 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                            {reply.author.charAt(0).toUpperCase()}
+                            {(reply.author_name || 'A').charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="font-semibold text-sm">{reply.author}</span>
-                              <span className="text-slate-500 text-xs">{reply.date}</span>
+                              <span className="font-semibold text-sm">{reply.author_name || 'Anonymous'}</span>
+                              <span className="text-slate-500 text-xs">
+                                {new Date(reply.created_at).toLocaleDateString()}
+                              </span>
                             </div>
                             <p className="text-slate-700 dark:text-slate-300 text-sm">{reply.content}</p>
                           </div>
@@ -312,6 +370,14 @@ const BlogPost = () => {
               </Card>
             ))}
           </div>
+          
+          {comments.length === 0 && (
+            <div className="text-center py-8">
+              <MessageCircle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No comments yet</h3>
+              <p className="text-slate-600">Be the first to share your thoughts!</p>
+            </div>
+          )}
         </section>
       </article>
     </div>
