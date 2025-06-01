@@ -26,10 +26,18 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
+    if (!loading) {
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+      if (!isAdmin) {
+        toast.error("Access denied. Admin privileges required.");
+        navigate("/");
+        return;
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, isAdmin, loading, navigate]);
 
   useEffect(() => {
     if (user && isAdmin) {
@@ -115,7 +123,7 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  if (loading || isLoading) {
+  if (loading || isLoading || !user || !isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <Navigation />
@@ -124,21 +132,6 @@ const Dashboard = () => {
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-slate-600">Loading...</p>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user || !isAdmin) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <Navigation />
-        <div className="max-w-4xl mx-auto px-6 py-12 text-center">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="text-slate-600 mb-4">You need admin privileges to access this dashboard.</p>
-          <Link to="/">
-            <Button>Go Home</Button>
-          </Link>
         </div>
       </div>
     );

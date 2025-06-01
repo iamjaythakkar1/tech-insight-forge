@@ -3,11 +3,17 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, PenTool, User, LogIn } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Menu, X, PenTool, User, LogIn, LogOut, Settings } from "lucide-react";
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn] = useState(false); // This will be managed by auth context later
+  const { user, isAdmin, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsMenuOpen(false);
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700">
@@ -36,18 +42,24 @@ export const Navigation = () => {
 
           <div className="hidden md:flex items-center gap-4">
             <ThemeToggle />
-            {isLoggedIn ? (
+            {user ? (
               <div className="flex items-center gap-2">
-                <Button asChild variant="outline">
-                  <Link to="/create">Create Post</Link>
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <User className="h-4 w-4" />
+                {isAdmin && (
+                  <Button asChild variant="outline">
+                    <Link to="/dashboard">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </Link>
+                  </Button>
+                )}
+                <Button onClick={handleSignOut} variant="outline">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
                 </Button>
               </div>
             ) : (
               <Button asChild variant="outline">
-                <Link to="/login">
+                <Link to="/auth">
                   <LogIn className="h-4 w-4 mr-2" />
                   Login
                 </Link>
@@ -84,19 +96,24 @@ export const Navigation = () => {
               <Link to="/contact" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 transition-colors">
                 Contact
               </Link>
-              {isLoggedIn ? (
+              {user ? (
                 <div className="flex flex-col gap-2">
-                  <Button asChild variant="outline" className="w-full">
-                    <Link to="/create">Create Post</Link>
-                  </Button>
-                  <Button variant="ghost" className="w-full justify-start">
-                    <User className="h-4 w-4 mr-2" />
-                    Profile
+                  {isAdmin && (
+                    <Button asChild variant="outline" className="w-full">
+                      <Link to="/dashboard">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Dashboard
+                      </Link>
+                    </Button>
+                  )}
+                  <Button onClick={handleSignOut} variant="outline" className="w-full justify-start">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
                   </Button>
                 </div>
               ) : (
                 <Button asChild variant="outline" className="w-full">
-                  <Link to="/login">
+                  <Link to="/auth">
                     <LogIn className="h-4 w-4 mr-2" />
                     Login
                   </Link>

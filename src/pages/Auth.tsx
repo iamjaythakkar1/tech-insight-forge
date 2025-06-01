@@ -16,14 +16,19 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      // Redirect admins to dashboard, regular users to home
+      if (isAdmin) {
+        navigate("/dashboard");
+      } else {
+        navigate("/");
+      }
     }
-  }, [user, navigate]);
+  }, [user, isAdmin, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +46,7 @@ const Auth = () => {
       toast.error(error.message);
     } else {
       toast.success("Signed in successfully!");
-      navigate("/dashboard");
+      // Navigation will be handled by useEffect above
     }
     
     setIsLoading(false);
@@ -52,6 +57,11 @@ const Auth = () => {
     
     if (!email || !password) {
       toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
       return;
     }
 
@@ -82,7 +92,7 @@ const Auth = () => {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
             <p className="text-slate-600 dark:text-slate-300">
-              Sign in to access the admin dashboard
+              Sign in to access your account or create a new one
             </p>
           </CardHeader>
           <CardContent>
@@ -99,7 +109,7 @@ const Auth = () => {
                     <Input
                       id="signin-email"
                       type="email"
-                      placeholder="admin@example.com"
+                      placeholder="your@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -154,10 +164,11 @@ const Auth = () => {
                     <Input
                       id="signup-password"
                       type="password"
-                      placeholder="Choose a strong password"
+                      placeholder="Choose a strong password (min 6 characters)"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      minLength={6}
                     />
                   </div>
                   
@@ -171,7 +182,7 @@ const Auth = () => {
                     ) : (
                       <>
                         <UserPlus className="mr-2 h-4 w-4" />
-                        Sign Up
+                        Create Account
                       </>
                     )}
                   </Button>
