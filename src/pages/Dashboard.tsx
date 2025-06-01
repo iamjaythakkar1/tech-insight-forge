@@ -8,7 +8,7 @@ import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Eye, FileText, Settings, LogOut } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, FileText, Settings, LogOut, Category } from "lucide-react";
 
 interface Blog {
   id: string;
@@ -19,11 +19,22 @@ interface Blog {
   category: { name: string; color: string } | null;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  description: string;
+  slug: string;
+  color: string;
+  created_at: string;
+}
+
 const Dashboard = () => {
   const { user, isAdmin, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'blogs' | 'categories'>('blogs');
 
   useEffect(() => {
     if (!loading) {
@@ -31,23 +42,19 @@ const Dashboard = () => {
         navigate("/auth");
         return;
       }
-      if (!isAdmin) {
-        toast.error("Access denied. Admin privileges required.");
-        navigate("/");
-        return;
-      }
     }
-  }, [user, isAdmin, loading, navigate]);
+  }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user && isAdmin) {
+    if (user) {
       fetchBlogs();
+      fetchCategories();
     }
-  }, [user, isAdmin]);
+  }, [user]);
 
   const fetchBlogs = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('blogs')
         .select(`
           id,
@@ -62,6 +69,13 @@ const Dashboard = () => {
         `)
         .order('created_at', { ascending: false });
 
+      // If not admin, only show user's own blogs
+      if (!isAdmin) {
+        query = query.eq('author_id', user?.id);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
 
       const formattedBlogs = data.map(blog => ({
@@ -75,6 +89,21 @@ const Dashboard = () => {
       toast.error('Failed to fetch blogs');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Failed to fetch categories');
     }
   };
 
@@ -94,6 +123,25 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error deleting blog:', error);
       toast.error('Failed to delete blog');
+    }
+  };
+
+  const deleteCategory = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setCategories(categories.filter(cat => cat.id !== id));
+      toast.success('Category deleted successfully');
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast.error('Failed to delete category');
     }
   };
 
@@ -123,7 +171,7 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  if (loading || isLoading || !user || !isAdmin) {
+  if (loading || isLoading || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <Navigation />
@@ -144,30 +192,47 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-white">Admin Dashboard</h1>
-            <p className="text-slate-600 dark:text-slate-300">Manage your blog content and settings</p>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
+              {isAdmin ? 'Admin Dashboard' : 'My Dashboard'}
+            </h1>
+            <p className="text-slate-600 dark:text-slate-300">
+              {isAdmin ? 'Manage your blog content and settings' : 'Manage your blog posts and content'}
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Link to="/categories-admin">
-              <Button variant="outline">
-                <Settings className="mr-2 h-4 w-4" />
-                Manage Categories
-              </Button>
-            </Link>
-            <Button onClick={handleSignOut} variant="outline">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Button>
-          </div>
+          <Button onClick={handleSignOut} variant="outline">
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="flex gap-4 mb-8">
+          <Button 
+            variant={activeTab === 'blogs' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('blogs')}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            My Blogs
+          </Button>
+          <Button 
+            variant={activeTab === 'categories' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('categories')}
+          >
+            <Category className="mr-2 h-4 w-4" />
+            Categories
+          </Button>
+        </div>
+
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
                 <FileText className="h-8 w-8 text-blue-600" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-slate-600">Total Blogs</p>
+                  <p className="text-sm font-medium text-slate-600">
+                    {isAdmin ? 'Total Blogs' : 'My Blogs'}
+                  </p>
                   <p className="text-2xl font-bold">{blogs.length}</p>
                 </div>
               </div>
@@ -199,83 +264,171 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Blog Posts</h2>
-          <Link to="/admin/create">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create New Post
-            </Button>
-          </Link>
-        </div>
+        {/* Blogs Tab */}
+        {activeTab === 'blogs' && (
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">Blog Posts</h2>
+              <Link to="/admin/create">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create New Post
+                </Button>
+              </Link>
+            </div>
 
-        <div className="space-y-4">
-          {blogs.map((blog) => (
-            <Card key={blog.id}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold">{blog.title}</h3>
-                      <Badge variant={blog.status === 'published' ? 'default' : 'secondary'}>
-                        {blog.status}
-                      </Badge>
-                      {blog.category && (
-                        <Badge 
-                          variant="outline" 
-                          style={{ backgroundColor: blog.category.color + '20', color: blog.category.color }}
+            <div className="space-y-4">
+              {blogs.map((blog) => (
+                <Card key={blog.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-lg font-semibold">{blog.title}</h3>
+                          <Badge variant={blog.status === 'published' ? 'default' : 'secondary'}>
+                            {blog.status}
+                          </Badge>
+                          {blog.category && (
+                            <Badge 
+                              variant="outline" 
+                              style={{ backgroundColor: blog.category.color + '20', color: blog.category.color }}
+                            >
+                              {blog.category.name}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-300 mb-2">{blog.excerpt}</p>
+                        <p className="text-sm text-slate-500">
+                          Created: {new Date(blog.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => togglePublishStatus(blog.id, blog.status)}
                         >
-                          {blog.category.name}
-                        </Badge>
-                      )}
+                          {blog.status === 'published' ? 'Unpublish' : 'Publish'}
+                        </Button>
+                        <Link to={`/admin/edit/${blog.id}`}>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteBlog(blog.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-300 mb-2">{blog.excerpt}</p>
-                    <p className="text-sm text-slate-500">
-                      Created: {new Date(blog.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => togglePublishStatus(blog.id, blog.status)}
-                    >
-                      {blog.status === 'published' ? 'Unpublish' : 'Publish'}
-                    </Button>
-                    <Link to={`/admin/edit/${blog.id}`}>
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {blogs.length === 0 && (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No blog posts yet</h3>
+                    <p className="text-slate-600 mb-4">Create your first blog post to get started.</p>
+                    <Link to="/admin/create">
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create First Post
                       </Button>
                     </Link>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteBlog(blog.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {blogs.length === 0 && (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No blog posts yet</h3>
-                <p className="text-slate-600 mb-4">Create your first blog post to get started.</p>
-                <Link to="/admin/create">
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Categories Tab */}
+        {activeTab === 'categories' && (
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">Categories</h2>
+              {isAdmin && (
+                <Link to="/categories-admin">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
-                    Create First Post
+                    Manage Categories
                   </Button>
                 </Link>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.map((category) => (
+                <Card key={category.id}>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div 
+                        className="w-12 h-12 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: category.color }}
+                      >
+                        <span className="text-white font-bold">
+                          {category.name.charAt(0)}
+                        </span>
+                      </div>
+                      {isAdmin && (
+                        <div className="flex gap-1">
+                          <Link to="/categories-admin">
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteCategory(category.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <h3 className="font-semibold text-lg mb-2">{category.name}</h3>
+                    <p className="text-slate-600 dark:text-slate-300 text-sm mb-2">
+                      Slug: /{category.slug}
+                    </p>
+                    {category.description && (
+                      <p className="text-slate-600 dark:text-slate-300 text-sm">
+                        {category.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-slate-500 mt-2">
+                      Created: {new Date(category.created_at).toLocaleDateString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {categories.length === 0 && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Category className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No categories yet</h3>
+                  <p className="text-slate-600 mb-4">Categories will be shown here once they are created.</p>
+                  {isAdmin && (
+                    <Link to="/categories-admin">
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create First Category
+                      </Button>
+                    </Link>
+                  )}
+                </Card>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

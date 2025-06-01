@@ -8,7 +8,7 @@ import { Menu, X, PenTool, User, LogIn, LogOut, Settings } from "lucide-react";
 
 export const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -44,14 +44,12 @@ export const Navigation = () => {
             <ThemeToggle />
             {user ? (
               <div className="flex items-center gap-2">
-                {isAdmin && (
-                  <Button asChild variant="outline">
-                    <Link to="/dashboard">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Dashboard
-                    </Link>
-                  </Button>
-                )}
+                <Button asChild variant="outline">
+                  <Link to="/dashboard">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Link>
+                </Button>
                 <Button onClick={handleSignOut} variant="outline">
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
@@ -98,14 +96,12 @@ export const Navigation = () => {
               </Link>
               {user ? (
                 <div className="flex flex-col gap-2">
-                  {isAdmin && (
-                    <Button asChild variant="outline" className="w-full">
-                      <Link to="/dashboard">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Dashboard
-                      </Link>
-                    </Button>
-                  )}
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to="/dashboard">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </Link>
+                  </Button>
                   <Button onClick={handleSignOut} variant="outline" className="w-full justify-start">
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out

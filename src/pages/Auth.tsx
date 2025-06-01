@@ -16,19 +16,15 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user, isAdmin } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
-      // Redirect admins to dashboard, regular users to home
-      if (isAdmin) {
-        navigate("/dashboard");
-      } else {
-        navigate("/");
-      }
+      // Redirect all authenticated users to dashboard
+      navigate("/dashboard");
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
