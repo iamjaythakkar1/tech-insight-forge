@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, Home, Folder, Info, Mail, LogIn, LayoutDashboard } from "lucide-react";
+import { Menu, X, Home, Folder, Info, Mail, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const Navigation = () => {
@@ -62,18 +62,11 @@ export const Navigation = () => {
           {/* Right Side Actions */}
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
-            {user ? (
+            {user && (
               <Link to="/dashboard">
                 <Button variant="outline" size="sm">
                   <LayoutDashboard className="mr-2 h-4 w-4" />
                   Dashboard
-                </Button>
-              </Link>
-            ) : (
-              <Link to="/login">
-                <Button size="sm">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Login
                 </Button>
               </Link>
             )}
@@ -114,8 +107,8 @@ export const Navigation = () => {
                   </Link>
                 );
               })}
-              <div className="border-t border-slate-200 dark:border-slate-700 pt-2 mt-2">
-                {user ? (
+              {user && (
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-2 mt-2">
                   <Link
                     to="/dashboard"
                     className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -124,17 +117,8 @@ export const Navigation = () => {
                     <LayoutDashboard className="h-4 w-4" />
                     <span>Dashboard</span>
                   </Link>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <LogIn className="h-4 w-4" />
-                    <span>Login</span>
-                  </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         )}

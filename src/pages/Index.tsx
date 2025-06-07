@@ -39,16 +39,20 @@ const Index = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const getCategoryImage = (categoryName: string) => {
+  const getCategoryImage = (categoryName: string, index: number) => {
     const images = [
       `https://images.unsplash.com/photo-1649972904349-6e44c42644a7`,
       `https://images.unsplash.com/photo-1488590528505-98d2b5aba04b`,
       `https://images.unsplash.com/photo-1518770660439-4636190af475`,
       `https://images.unsplash.com/photo-1461749280684-dccba630e2f6`,
-      `https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d`
+      `https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d`,
+      `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158`,
+      `https://images.unsplash.com/photo-1485827404703-89b55fcc595e`,
+      `https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5`,
+      `https://images.unsplash.com/photo-1531297484001-80022131f5a1`,
+      `https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7`
     ];
-    const index = categoryName.charCodeAt(0) % images.length;
-    return images[index];
+    return images[index % images.length];
   };
 
   useEffect(() => {
@@ -237,12 +241,12 @@ const Index = () => {
               <div className="mb-12">
                 <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-8">Browse Categories</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                  {categories.slice(0, 6).map((category) => (
+                  {categories.slice(0, 6).map((category, index) => (
                     <Link key={category.id} to={`/category/${category.slug}`}>
                       <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
                         <div className="relative h-32 overflow-hidden">
                           <img 
-                            src={getCategoryImage(category.name)}
+                            src={getCategoryImage(category.name, index)}
                             alt={category.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                           />
@@ -360,11 +364,6 @@ const Index = () => {
                       <p className="text-slate-600 dark:text-slate-300 mb-4">
                         No content available yet. Check back soon for amazing tech articles!
                       </p>
-                      <Link to="/login">
-                        <Button>
-                          Admin Login
-                        </Button>
-                      </Link>
                     </CardContent>
                   </Card>
                 )}
@@ -383,7 +382,6 @@ const Index = () => {
             <Link to="/categories" className="hover:text-blue-400 transition-colors">Categories</Link>
             <Link to="/about" className="hover:text-blue-400 transition-colors">About</Link>
             <Link to="/contact" className="hover:text-blue-400 transition-colors">Contact</Link>
-            <Link to="/login" className="hover:text-blue-400 transition-colors">Admin</Link>
           </div>
         </div>
       </footer>

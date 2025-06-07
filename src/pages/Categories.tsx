@@ -33,6 +33,22 @@ const Categories = () => {
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const getCategoryImage = (categoryName: string, index: number) => {
+    const images = [
+      `https://images.unsplash.com/photo-1649972904349-6e44c42644a7`,
+      `https://images.unsplash.com/photo-1488590528505-98d2b5aba04b`,
+      `https://images.unsplash.com/photo-1518770660439-4636190af475`,
+      `https://images.unsplash.com/photo-1461749280684-dccba630e2f6`,
+      `https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d`,
+      `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158`,
+      `https://images.unsplash.com/photo-1485827404703-89b55fcc595e`,
+      `https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5`,
+      `https://images.unsplash.com/photo-1531297484001-80022131f5a1`,
+      `https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7`
+    ];
+    return images[index % images.length];
+  };
+
   useEffect(() => {
     if (slug) {
       fetchCategoryBlogs(slug);
@@ -65,6 +81,9 @@ const Categories = () => {
           };
         })
       );
+
+      // Sort by blog count (highest first)
+      categoriesWithCount.sort((a, b) => b.blog_count - a.blog_count);
 
       setCategories(categoriesWithCount);
     } catch (error) {
@@ -221,26 +240,26 @@ const Categories = () => {
 
             {categories.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {categories.map((category) => (
+                {categories.map((category, index) => (
                   <Link key={category.id} to={`/category/${category.slug}`}>
                     <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
-                      <CardContent className="p-6 text-center">
-                        <div 
-                          className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform"
-                          style={{ backgroundColor: category.color }}
-                        >
+                      <div className="relative h-32 overflow-hidden">
+                        <img 
+                          src={getCategoryImage(category.name, index)}
+                          alt={category.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
+                        <div className="absolute inset-0 flex items-center justify-center">
                           <span className="text-white font-bold text-xl">
-                            {category.name.charAt(0)}
+                            {category.name}
                           </span>
                         </div>
-                        <h3 className="font-semibold text-lg mb-2 group-hover:text-blue-600 transition-colors">
-                          {category.name}
-                        </h3>
-                        <p className="text-slate-500 text-sm mb-2">
-                          {category.blog_count} article{category.blog_count !== 1 ? 's' : ''}
-                        </p>
+                      </div>
+                      <CardContent className="p-4 text-center">
+                        <p className="text-slate-500 text-sm">{category.blog_count} article{category.blog_count !== 1 ? 's' : ''}</p>
                         {category.description && (
-                          <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-2">
+                          <p className="text-slate-600 dark:text-slate-300 text-xs mt-2 line-clamp-2">
                             {category.description}
                           </p>
                         )}

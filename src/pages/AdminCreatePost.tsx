@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ interface Category {
 const AdminCreatePost = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
@@ -38,17 +37,22 @@ const AdminCreatePost = () => {
   const isEditing = !!id;
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
-      navigate("/auth");
+    console.log('AdminCreatePost - Auth state:', { user, loading });
+    if (!loading && !user) {
+      console.log('Redirecting to login...');
+      navigate("/login");
+      return;
     }
-  }, [user, isAdmin, loading, navigate]);
+  }, [user, loading, navigate]);
 
   useEffect(() => {
-    fetchCategories();
-    if (isEditing) {
-      fetchBlog();
+    if (user) {
+      fetchCategories();
+      if (isEditing) {
+        fetchBlog();
+      }
     }
-  }, [isEditing, id]);
+  }, [isEditing, id, user]);
 
   useEffect(() => {
     if (title && !isEditing) {
@@ -151,6 +155,21 @@ const AdminCreatePost = () => {
         <Navigation />
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <Navigation />
+        <div className="max-w-4xl mx-auto px-6 py-12 text-center">
+          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
+          <p className="text-slate-600 mb-4">Please log in to create or edit posts.</p>
+          <Link to="/login">
+            <Button>Go to Login</Button>
+          </Link>
         </div>
       </div>
     );

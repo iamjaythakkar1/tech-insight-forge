@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ interface Category {
 }
 
 const CategoriesAdmin = () => {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,16 +36,18 @@ const CategoriesAdmin = () => {
   });
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
-      navigate("/auth");
+    console.log('CategoriesAdmin - Auth state:', { user, loading });
+    if (!loading && !user) {
+      console.log('Redirecting to login...');
+      navigate("/login");
     }
-  }, [user, isAdmin, loading, navigate]);
+  }, [user, loading, navigate]);
 
   useEffect(() => {
-    if (user && isAdmin) {
+    if (user) {
       fetchCategories();
     }
-  }, [user, isAdmin]);
+  }, [user]);
 
   useEffect(() => {
     if (formData.name && !editingCategory) {
@@ -169,15 +170,15 @@ const CategoriesAdmin = () => {
     );
   }
 
-  if (!user || !isAdmin) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <Navigation />
         <div className="max-w-4xl mx-auto px-6 py-12 text-center">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="text-slate-600 mb-4">You need admin privileges to manage categories.</p>
-          <Link to="/">
-            <Button>Go Home</Button>
+          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
+          <p className="text-slate-600 mb-4">Please log in to manage categories.</p>
+          <Link to="/login">
+            <Button>Go to Login</Button>
           </Link>
         </div>
       </div>
