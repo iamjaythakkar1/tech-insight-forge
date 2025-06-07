@@ -36,7 +36,7 @@ interface Comment {
 }
 
 const BlogPost = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const { user } = useAuth();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -47,16 +47,18 @@ const BlogPost = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
+    if (slug) {
       fetchPost();
       fetchComments();
     }
-  }, [id]);
+  }, [slug]);
 
   const fetchPost = async () => {
-    if (!id) return;
+    if (!slug) return;
 
     try {
+      console.log('Fetching post with slug:', slug);
+      
       const { data, error } = await supabase
         .from('blogs')
         .select(`
@@ -72,12 +74,18 @@ const BlogPost = () => {
             color
           )
         `)
-        .or(`id.eq.${id},slug.eq.${id}`)
+        .eq('slug', slug)
         .eq('status', 'published')
         .single();
 
-      if (error) throw error;
-      setPost(data);
+      console.log('Post fetch result:', { data, error });
+
+      if (error) {
+        console.error('Error fetching post:', error);
+        setPost(null);
+      } else {
+        setPost(data);
+      }
     } catch (error) {
       console.error('Error fetching post:', error);
       setPost(null);
@@ -87,13 +95,22 @@ const BlogPost = () => {
   };
 
   const fetchComments = async () => {
-    if (!id) return;
+    if (!slug) return;
 
     try {
+      // First get the blog post to get its ID
+      const { data: blogData } = await supabase
+        .from('blogs')
+        .select('id')
+        .eq('slug', slug)
+        .single();
+
+      if (!blogData) return;
+
       const { data, error } = await supabase
         .from('comments')
         .select('*')
-        .eq('blog_id', id)
+        .eq('blog_id', blogData.id)
         .is('parent_id', null)
         .order('created_at', { ascending: true });
 
@@ -101,7 +118,7 @@ const BlogPost = () => {
 
       // Fetch replies for each comment
       const commentsWithReplies = await Promise.all(
-        data.map(async (comment) => {
+        (data || []).map(async (comment) => {
           const { data: replies, error: repliesError } = await supabase
             .from('comments')
             .select('*')
@@ -277,6 +294,9 @@ const BlogPost = () => {
         <div className="max-w-4xl mx-auto px-6 py-12">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Post not found</h1>
+            <p className="text-slate-600 dark:text-slate-300 mb-6">
+              The article you're looking for doesn't exist or has been removed.
+            </p>
             <Link to="/">
               <Button>
                 <ArrowLeft className="mr-2 h-4 w-4" />

@@ -13,6 +13,8 @@ import Dashboard from "./pages/Dashboard";
 import AdminCreatePost from "./pages/AdminCreatePost";
 import Categories from "./pages/Categories";
 import CategoriesAdmin from "./pages/CategoriesAdmin";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +31,8 @@ const App: React.FC = () => (
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/category/:slug" element={<Categories />} />
             <Route path="/categories" element={<Categories />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin/create" element={<AdminCreatePost />} />
