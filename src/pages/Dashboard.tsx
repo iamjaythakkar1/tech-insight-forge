@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
+import { UserManagement } from "@/components/UserManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Eye, FileText, Settings, LogOut, Category } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, FileText, Settings, LogOut, Category, Users } from "lucide-react";
 
 interface Blog {
   id: string;
@@ -16,10 +17,10 @@ interface Blog {
   excerpt: string;
   status: 'draft' | 'published';
   created_at: string;
-  category: { name: string; color: string } | null;
+  categories: { name: string; color: string } | null;
 }
 
-interface Category {
+interface CategoryType {
   id: string;
   name: string;
   description: string;
@@ -29,17 +30,17 @@ interface Category {
 }
 
 const Dashboard = () => {
-  const { user, isAdmin, signOut, loading } = useAuth();
+  const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'blogs' | 'categories'>('blogs');
+  const [activeTab, setActiveTab] = useState<'blogs' | 'categories' | 'users'>('blogs');
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        navigate("/auth");
+        navigate("/login");
         return;
       }
     }
@@ -54,7 +55,7 @@ const Dashboard = () => {
 
   const fetchBlogs = async () => {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('blogs')
         .select(`
           id,
@@ -69,18 +70,11 @@ const Dashboard = () => {
         `)
         .order('created_at', { ascending: false });
 
-      // If not admin, only show user's own blogs
-      if (!isAdmin) {
-        query = query.eq('author_id', user?.id);
-      }
-
-      const { data, error } = await query;
-
       if (error) throw error;
 
       const formattedBlogs = data.map(blog => ({
         ...blog,
-        category: blog.categories
+        categories: blog.categories
       }));
 
       setBlogs(formattedBlogs);
@@ -193,10 +187,10 @@ const Dashboard = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
-              {isAdmin ? 'Admin Dashboard' : 'My Dashboard'}
+              Dashboard
             </h1>
             <p className="text-slate-600 dark:text-slate-300">
-              {isAdmin ? 'Manage your blog content and settings' : 'Manage your blog posts and content'}
+              Manage your blog content, categories, and users
             </p>
           </div>
           <Button onClick={handleSignOut} variant="outline">
@@ -212,7 +206,7 @@ const Dashboard = () => {
             onClick={() => setActiveTab('blogs')}
           >
             <FileText className="mr-2 h-4 w-4" />
-            My Blogs
+            Blogs
           </Button>
           <Button 
             variant={activeTab === 'categories' ? 'default' : 'outline'}
@@ -220,6 +214,13 @@ const Dashboard = () => {
           >
             <Category className="mr-2 h-4 w-4" />
             Categories
+          </Button>
+          <Button 
+            variant={activeTab === 'users' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('users')}
+          >
+            <Users className="mr-2 h-4 w-4" />
+            Users
           </Button>
         </div>
 
@@ -230,9 +231,7 @@ const Dashboard = () => {
               <div className="flex items-center">
                 <FileText className="h-8 w-8 text-blue-600" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-slate-600">
-                    {isAdmin ? 'Total Blogs' : 'My Blogs'}
-                  </p>
+                  <p className="text-sm font-medium text-slate-600">Total Blogs</p>
                   <p className="text-2xl font-bold">{blogs.length}</p>
                 </div>
               </div>
@@ -254,10 +253,10 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Edit className="h-8 w-8 text-orange-600" />
+                <Category className="h-8 w-8 text-orange-600" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-slate-600">Drafts</p>
-                  <p className="text-2xl font-bold">{blogs.filter(b => b.status === 'draft').length}</p>
+                  <p className="text-sm font-medium text-slate-600">Categories</p>
+                  <p className="text-2xl font-bold">{categories.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -288,12 +287,12 @@ const Dashboard = () => {
                           <Badge variant={blog.status === 'published' ? 'default' : 'secondary'}>
                             {blog.status}
                           </Badge>
-                          {blog.category && (
+                          {blog.categories && (
                             <Badge 
                               variant="outline" 
-                              style={{ backgroundColor: blog.category.color + '20', color: blog.category.color }}
+                              style={{ backgroundColor: blog.categories.color + '20', color: blog.categories.color }}
                             >
-                              {blog.category.name}
+                              {blog.categories.name}
                             </Badge>
                           )}
                         </div>
@@ -352,14 +351,12 @@ const Dashboard = () => {
           <>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">Categories</h2>
-              {isAdmin && (
-                <Link to="/categories-admin">
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Manage Categories
-                  </Button>
-                </Link>
-              )}
+              <Link to="/categories-admin">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Manage Categories
+                </Button>
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -375,22 +372,20 @@ const Dashboard = () => {
                           {category.name.charAt(0)}
                         </span>
                       </div>
-                      {isAdmin && (
-                        <div className="flex gap-1">
-                          <Link to="/categories-admin">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteCategory(category.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
+                      <div className="flex gap-1">
+                        <Link to="/categories-admin">
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4" />
                           </Button>
-                        </div>
-                      )}
+                        </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteCategory(category.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     
                     <h3 className="font-semibold text-lg mb-2">{category.name}</h3>
@@ -416,18 +411,21 @@ const Dashboard = () => {
                   <Category className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No categories yet</h3>
                   <p className="text-slate-600 mb-4">Categories will be shown here once they are created.</p>
-                  {isAdmin && (
-                    <Link to="/categories-admin">
-                      <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create First Category
-                      </Button>
-                    </Link>
-                  )}
-                </Card>
-              )}
-            </div>
+                  <Link to="/categories-admin">
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create First Category
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
           </>
+        )}
+
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <UserManagement />
         )}
       </div>
     </div>

@@ -57,7 +57,7 @@ export const Navigation = () => {
               </div>
             ) : (
               <Button asChild variant="outline">
-                <Link to="/auth">
+                <Link to="/login">
                   <LogIn className="h-4 w-4 mr-2" />
                   Login
                 </Link>
@@ -109,7 +109,7 @@ export const Navigation = () => {
                 </div>
               ) : (
                 <Button asChild variant="outline" className="w-full">
-                  <Link to="/auth">
+                  <Link to="/login">
                     <LogIn className="h-4 w-4 mr-2" />
                     Login
                   </Link>

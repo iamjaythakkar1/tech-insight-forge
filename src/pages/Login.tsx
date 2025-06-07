@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,13 +8,25 @@ import { Label } from "@/components/ui/label";
 import { Navigation } from "@/components/Navigation";
 import { ArrowLeft, LogIn } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { signIn, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleLogin = async (e) => {
+  useEffect(() => {
+    if (user) {
+      const from = location.state?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, location]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password) {
@@ -24,13 +36,16 @@ const Login = () => {
 
     setIsLoading(true);
     
-    // Simulate login process
-    setTimeout(() => {
-      // In real app, implement actual authentication
+    const { error } = await signIn(email, password);
+    
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("Login successful!");
-      setIsLoading(false);
-      // Redirect to dashboard or home
-    }, 1500);
+      navigate("/dashboard");
+    }
+    
+    setIsLoading(false);
   };
 
   return (
