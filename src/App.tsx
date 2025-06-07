@@ -28,11 +28,11 @@ const App: React.FC = () => (
             <Route path="/" element={<Index />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/category/:slug" element={<Categories />} />
+            <Route path="/categories" element={<Categories />} />
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin/create" element={<AdminCreatePost />} />
             <Route path="/admin/edit/:id" element={<AdminCreatePost />} />
-            <Route path="/categories" element={<Categories />} />
             <Route path="/categories-admin" element={<CategoriesAdmin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

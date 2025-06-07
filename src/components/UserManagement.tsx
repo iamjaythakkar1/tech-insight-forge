@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Plus, Users, Mail, Calendar } from "lucide-react";
 
@@ -24,6 +24,7 @@ export const UserManagement = () => {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { createUser } = useAuth();
 
   useEffect(() => {
     fetchUsers();
@@ -42,7 +43,7 @@ export const UserManagement = () => {
     }
   };
 
-  const createUser = async (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newUserEmail || !newUserPassword) {
@@ -58,12 +59,7 @@ export const UserManagement = () => {
     setIsCreating(true);
 
     try {
-      // Use Supabase admin function to create user
-      const { data, error } = await supabase.auth.admin.createUser({
-        email: newUserEmail,
-        password: newUserPassword,
-        email_confirm: true
-      });
+      const { error } = await createUser(newUserEmail, newUserPassword);
 
       if (error) throw error;
 
@@ -99,7 +95,7 @@ export const UserManagement = () => {
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
               </DialogHeader>
-              <form onSubmit={createUser} className="space-y-4">
+              <form onSubmit={handleCreateUser} className="space-y-4">
                 <div>
                   <Label htmlFor="email">Email</Label>
                   <Input

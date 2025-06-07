@@ -9,7 +9,7 @@ import { UserManagement } from "@/components/UserManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Eye, FileText, Settings, LogOut, Category, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, FileText, LogOut, Folder, Users } from "lucide-react";
 
 interface Blog {
   id: string;
@@ -212,7 +212,7 @@ const Dashboard = () => {
             variant={activeTab === 'categories' ? 'default' : 'outline'}
             onClick={() => setActiveTab('categories')}
           >
-            <Category className="mr-2 h-4 w-4" />
+            <Folder className="mr-2 h-4 w-4" />
             Categories
           </Button>
           <Button 
@@ -253,7 +253,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Category className="h-8 w-8 text-orange-600" />
+                <Folder className="h-8 w-8 text-orange-600" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-slate-600">Categories</p>
                   <p className="text-2xl font-bold">{categories.length}</p>
@@ -408,7 +408,7 @@ const Dashboard = () => {
             {categories.length === 0 && (
               <Card>
                 <CardContent className="p-12 text-center">
-                  <Category className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <Folder className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No categories yet</h3>
                   <p className="text-slate-600 mb-4">Categories will be shown here once they are created.</p>
                   <Link to="/categories-admin">
