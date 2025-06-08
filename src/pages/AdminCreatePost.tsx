@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -151,56 +150,60 @@ const AdminCreatePost = () => {
   };
 
   const formatContent = (content: string) => {
-    // Enhanced content processing with better code block styling for preview
+    // Enhanced content processing with proper code block styling
     let html = content
       // Headers
-      .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-6">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mb-6 mt-8">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-8 mt-10">$1</h1>')
+      .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-6 text-slate-800 dark:text-white">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mb-6 mt-8 text-slate-800 dark:text-white">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-8 mt-10 text-slate-800 dark:text-white">$1</h1>')
       
       // Bold and Italic
-      .replace(/\*\*(.*)\*\*/gim, '<strong class="font-bold">$1</strong>')
-      .replace(/\*(.*)\*/gim, '<em class="italic">$1</em>')
+      .replace(/\*\*(.*)\*\*/gim, '<strong class="font-bold text-slate-800 dark:text-white">$1</strong>')
+      .replace(/\*(.*)\*/gim, '<em class="italic text-slate-700 dark:text-slate-200">$1</em>')
       
       // Links
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">$1</a>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline">$1</a>')
       
       // Images
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg" />')
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg border border-slate-200 dark:border-slate-700" />')
       
-      // Enhanced Code blocks with better styling
+      // Enhanced Code blocks with improved styling
       .replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
-        return `<div class="code-block relative bg-slate-900 rounded-lg my-6 overflow-hidden shadow-lg border border-slate-700">
-          <div class="flex items-center justify-between bg-slate-800 px-4 py-3 border-b border-slate-700">
-            <span class="text-slate-300 text-sm font-medium">${lang || 'code'}</span>
-            <button class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded text-xs font-medium transition-colors">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-              </svg>
+        const languageLabel = lang || 'code';
+        const cleanCode = code.trim();
+        return `<div class="relative my-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+            <span class="text-sm font-medium text-slate-600 dark:text-slate-300">${languageLabel}</span>
+            <button 
+              onclick="navigator.clipboard.writeText(\`${cleanCode.replace(/`/g, '\\`')}\`); 
+              this.textContent = 'Copied!'; 
+              setTimeout(() => this.textContent = 'Copy', 2000);"
+              class="px-3 py-1.5 text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+            >
               Copy
             </button>
           </div>
           <div class="p-4 overflow-x-auto">
-            <pre class="text-sm"><code class="text-slate-100 leading-relaxed">${code.trim()}</code></pre>
+            <pre class="text-sm leading-relaxed"><code class="text-slate-800 dark:text-slate-200 font-mono">${cleanCode}</code></pre>
           </div>
         </div>`;
       })
       
       // Inline code
-      .replace(/`([^`]+)`/gim, '<code class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-2 py-1 rounded text-sm font-mono border">$1</code>')
+      .replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm font-mono bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-700">$1</code>')
       
       // Lists
-      .replace(/^\* (.+)$/gim, '<li class="mb-2">$1</li>')
-      .replace(/^(\d+)\. (.+)$/gim, '<li class="mb-2">$1. $2</li>')
+      .replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>')
+      .replace(/^(\d+)\. (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$2</li>')
       
       // Blockquotes
-      .replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-6 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-r">$1</blockquote>')
+      .replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-6 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-r">$1</blockquote>')
       
       // Line breaks
       .replace(/\n/gim, '<br />');
 
     // Wrap consecutive list items
-    html = html.replace(/(<li[^>]*>.*<\/li>)/gims, '<ul class="list-disc pl-6 mb-4">$1</ul>');
+    html = html.replace(/(<li[^>]*>.*<\/li>)/gims, '<ul class="list-disc pl-6 mb-4 space-y-1">$1</ul>');
     
     return html;
   };
@@ -257,12 +260,10 @@ const AdminCreatePost = () => {
             </div>
           </div>
           
-          <article>
-            <h1 className="text-4xl font-bold mb-4">{title}</h1>
+          <article className="prose prose-lg max-w-none dark:prose-invert">
+            <h1 className="text-4xl font-bold mb-4 text-slate-800 dark:text-white">{title}</h1>
             <p className="text-lg text-slate-600 dark:text-slate-300 mb-8">{excerpt}</p>
-            <div className="prose prose-lg max-w-none dark:prose-invert">
-              <div dangerouslySetInnerHTML={{ __html: formatContent(content) }} />
-            </div>
+            <div dangerouslySetInnerHTML={{ __html: formatContent(content) }} />
           </article>
         </div>
       </div>

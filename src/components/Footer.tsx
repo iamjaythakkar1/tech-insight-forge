@@ -1,5 +1,6 @@
 
 import { Link } from "react-router-dom";
+import { Home, BookOpen, FolderOpen, User, Mail } from "lucide-react";
 
 export const Footer = () => {
   return (
@@ -23,11 +24,36 @@ export const Footer = () => {
           <div>
             <h3 className="font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <li><Link to="/" className="text-slate-300 hover:text-white transition-colors">Home</Link></li>
-              <li><Link to="/articles" className="text-slate-300 hover:text-white transition-colors">Articles</Link></li>
-              <li><Link to="/categories" className="text-slate-300 hover:text-white transition-colors">Categories</Link></li>
-              <li><Link to="/about" className="text-slate-300 hover:text-white transition-colors">About</Link></li>
-              <li><Link to="/contact" className="text-slate-300 hover:text-white transition-colors">Contact</Link></li>
+              <li>
+                <Link to="/" className="text-slate-300 hover:text-white transition-colors flex items-center gap-2">
+                  <Home className="h-4 w-4" />
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link to="/articles" className="text-slate-300 hover:text-white transition-colors flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Articles
+                </Link>
+              </li>
+              <li>
+                <Link to="/categories" className="text-slate-300 hover:text-white transition-colors flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4" />
+                  Categories
+                </Link>
+              </li>
+              <li>
+                <Link to="/about" className="text-slate-300 hover:text-white transition-colors flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="text-slate-300 hover:text-white transition-colors flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Contact
+                </Link>
+              </li>
             </ul>
           </div>
           

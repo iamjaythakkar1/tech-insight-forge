@@ -91,7 +91,13 @@ const Categories = () => {
         .single();
 
       if (categoryError) throw categoryError;
-      setSelectedCategory(categoryData);
+      
+      // Create the selected category with blog_count
+      const categoryWithCount: Category = {
+        ...categoryData,
+        blog_count: 0 // Will be updated when we fetch posts
+      };
+      setSelectedCategory(categoryWithCount);
 
       // Fetch posts for this category
       const { data: postsData, error: postsError } = await supabase
@@ -111,6 +117,9 @@ const Categories = () => {
 
       if (postsError) throw postsError;
       setPosts(postsData || []);
+      
+      // Update the category with actual blog count
+      setSelectedCategory(prev => prev ? { ...prev, blog_count: postsData?.length || 0 } : null);
     } catch (error) {
       console.error('Error fetching category and posts:', error);
     } finally {
@@ -166,38 +175,46 @@ const Categories = () => {
 
           {posts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {posts.map((post) => (
-                <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <h3 className="text-xl font-bold mb-3">
-                      <Link 
-                        to={`/blog/${post.slug}`}
-                        className="hover:text-blue-600 transition-colors"
-                      >
-                        {post.title}
-                      </Link>
-                    </h3>
-                    
-                    {post.excerpt && (
-                      <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
-                        {post.excerpt}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center justify-between text-sm text-slate-500">
-                      <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(post.created_at)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {post.read_time} min
-                        </span>
+              {posts.map((post, index) => (
+                <Link key={post.id} to={`/blog/${post.slug}`} className="block">
+                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
+                    <CardContent className="p-0">
+                      <div className="relative">
+                        <img 
+                          src={dummyImages[index % dummyImages.length]} 
+                          alt={post.title}
+                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
+                          {post.title}
+                        </h3>
+                        
+                        {post.excerpt && (
+                          <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
+                            {post.excerpt}
+                          </p>
+                        )}
+                        
+                        <div className="flex items-center justify-between text-sm text-slate-500">
+                          <div className="flex items-center gap-4">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              {formatDate(post.created_at)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {post.read_time} min
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           ) : (
@@ -233,50 +250,45 @@ const Categories = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {categories.map((category, index) => (
-            <Card key={category.id} className="overflow-hidden hover:shadow-xl transition-shadow group">
-              <CardContent className="p-0">
-                <div className="relative">
-                  <img 
-                    src={dummyImages[index % dummyImages.length]} 
-                    alt={category.name}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <Badge 
-                      className="mb-2"
-                      style={{ backgroundColor: category.color }}
-                    >
-                      {category.blog_count} {category.blog_count === 1 ? 'Article' : 'Articles'}
-                    </Badge>
-                    <h3 className="text-xl font-bold text-white mb-2">
-                      <Link 
-                        to={`/category/${category.slug}`}
-                        className="hover:text-blue-200 transition-colors"
+            <Link key={category.id} to={`/category/${category.slug}`} className="block">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
+                <CardContent className="p-0">
+                  <div className="relative">
+                    <img 
+                      src={dummyImages[index % dummyImages.length]} 
+                      alt={category.name}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <Badge 
+                        className="mb-2"
+                        style={{ backgroundColor: category.color }}
                       >
+                        {category.blog_count} {category.blog_count === 1 ? 'Article' : 'Articles'}
+                      </Badge>
+                      <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-200 transition-colors">
                         {category.name}
-                      </Link>
-                    </h3>
-                    {category.description && (
-                      <p className="text-slate-200 text-sm line-clamp-2">
-                        {category.description}
-                      </p>
-                    )}
+                      </h3>
+                      {category.description && (
+                        <p className="text-slate-200 text-sm line-clamp-2">
+                          {category.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-                
-                <div className="p-4">
-                  <Link 
-                    to={`/category/${category.slug}`}
-                    className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors"
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Explore {category.name}
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+                  
+                  <div className="p-4">
+                    <div className="inline-flex items-center text-blue-600 group-hover:text-blue-800 transition-colors">
+                      <BookOpen className="mr-2 h-4 w-4" />
+                      Explore {category.name}
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
 

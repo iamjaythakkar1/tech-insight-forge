@@ -46,6 +46,19 @@ const Articles = () => {
   
   const POSTS_PER_PAGE = 25;
 
+  const dummyImages = [
+    "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1484417894907-623942c8ee29?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=250&fit=crop"
+  ];
+
   useEffect(() => {
     fetchCategories();
     fetchPosts();
@@ -253,51 +266,60 @@ const Articles = () => {
 
         {/* Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-          {posts.map((post) => (
-            <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                {post.categories && (
-                  <Badge 
-                    className="mb-3"
-                    style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
-                  >
-                    {post.categories.name}
-                  </Badge>
-                )}
-                
-                <h3 className="text-xl font-bold mb-3 line-clamp-2">
-                  <Link 
-                    to={`/blog/${post.slug}`}
-                    className="hover:text-blue-600 transition-colors"
-                  >
-                    {post.title}
-                  </Link>
-                </h3>
-                
-                {post.excerpt && (
-                  <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
-                    {post.excerpt}
-                  </p>
-                )}
-                
-                <div className="flex items-center justify-between text-sm text-slate-500">
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {formatDate(post.created_at)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      {post.read_time} min
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-4 w-4" />
-                      {post.view_count || 0}
-                    </span>
+          {posts.map((post, index) => (
+            <Link key={post.id} to={`/blog/${post.slug}`} className="block">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
+                <CardContent className="p-0">
+                  <div className="relative">
+                    <img 
+                      src={dummyImages[index % dummyImages.length]} 
+                      alt={post.title}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    <div className="absolute top-4 right-4">
+                      {post.categories && (
+                        <Badge 
+                          style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
+                        >
+                          {post.categories.name}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                      {post.title}
+                    </h3>
+                    
+                    {post.excerpt && (
+                      <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
+                        {post.excerpt}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center justify-between text-sm text-slate-500">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(post.created_at)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {post.read_time} min
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-4 w-4" />
+                          {post.view_count || 0}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
 
