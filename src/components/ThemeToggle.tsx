@@ -85,10 +85,10 @@ export const ThemeToggle = () => {
           <Moon className="mr-2 h-4 w-4" />
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleThemeChange("reading")}>
+        {/* <DropdownMenuItem onClick={() => handleThemeChange("reading")}>
           <BookOpen className="mr-2 h-4 w-4" />
           Reading Mode
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
         <DropdownMenuItem onClick={() => handleThemeChange("system")}>
           <Monitor className="mr-2 h-4 w-4" />
           System
