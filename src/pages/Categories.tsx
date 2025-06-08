@@ -142,7 +142,12 @@ const Categories = () => {
         <Navigation />
         
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <Link to="/categories" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8 transition-colors">
+          {/* <Link to="/categories" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8 transition-colors"> */}
+          <Link
+            to="/categories"
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8 transition-colors"
+            onClick={() => setSelectedCategory(null)}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Categories
           </Link>
