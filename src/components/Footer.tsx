@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { Home, BookOpen, FolderOpen, User, Mail } from "lucide-react";
+import { Home, BookOpen, FolderOpen, User, Mail, Twitter, Github, Linkedin } from "lucide-react";
 
 export const Footer = () => {
   return (
@@ -59,10 +59,19 @@ export const Footer = () => {
           
           <div>
             <h3 className="font-semibold mb-4">Follow Us</h3>
-            <div className="flex space-x-4">
-              <a href="#" className="text-slate-300 hover:text-white transition-colors">Twitter</a>
-              <a href="#" className="text-slate-300 hover:text-white transition-colors">GitHub</a>
-              <a href="#" className="text-slate-300 hover:text-white transition-colors">LinkedIn</a>
+            <div className="flex flex-col space-y-2">
+              <a href="#" className="text-slate-300 hover:text-white transition-colors flex items-center gap-2">
+                <Twitter className="h-4 w-4" />
+                Twitter
+              </a>
+              <a href="#" className="text-slate-300 hover:text-white transition-colors flex items-center gap-2">
+                <Github className="h-4 w-4" />
+                GitHub
+              </a>
+              <a href="#" className="text-slate-300 hover:text-white transition-colors flex items-center gap-2">
+                <Linkedin className="h-4 w-4" />
+                LinkedIn
+              </a>
             </div>
           </div>
         </div>

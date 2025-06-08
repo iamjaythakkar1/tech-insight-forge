@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { Calendar, User, Clock, ChevronRight, BookOpen, TrendingUp } from "lucide-react";
+import { Calendar, User, Clock, ChevronRight, BookOpen, TrendingUp, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface BlogPost {
@@ -44,7 +44,11 @@ const Index = () => {
     "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=400&h=250&fit=crop",
     "https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400&h=250&fit=crop",
     "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=250&fit=crop",
-    "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=250&fit=crop"
+    "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=250&fit=crop"
   ];
 
   useEffect(() => {
@@ -190,51 +194,60 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredPosts.map((post) => (
-              <Card key={post.id} className="overflow-hidden hover:shadow-xl transition-shadow group">
-                <CardContent className="p-0">
-                  <div className="h-48 bg-gradient-to-br from-blue-500 to-purple-600"></div>
-                  <div className="p-6">
-                    {post.categories && (
-                      <Badge 
-                        className="mb-3"
-                        style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
-                      >
-                        {post.categories.name}
-                      </Badge>
-                    )}
+            {featuredPosts.map((post, index) => (
+              <Link key={post.id} to={`/blog/${post.slug}`} className="block">
+                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
+                  <CardContent className="p-0">
+                    <div className="relative">
+                      <img 
+                        src={dummyImages[index % dummyImages.length]} 
+                        alt={post.title}
+                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                      <div className="absolute top-4 right-4">
+                        {post.categories && (
+                          <Badge 
+                            style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
+                          >
+                            {post.categories.name}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                     
-                    <h3 className="text-xl font-bold mb-3 group-hover:text-blue-600 transition-colors">
-                      <Link to={`/blog/${post.slug}`}>
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
                         {post.title}
-                      </Link>
-                    </h3>
-                    
-                    {post.excerpt && (
-                      <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
-                        {post.excerpt}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center justify-between text-sm text-slate-500">
-                      <div className="flex items-center gap-4">
+                      </h3>
+                      
+                      {post.excerpt && (
+                        <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
+                          {post.excerpt}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center justify-between text-sm text-slate-500">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {formatDate(post.created_at)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {post.read_time} min
+                          </span>
+                        </div>
                         <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(post.created_at)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {post.read_time} min
+                          <Eye className="h-4 w-4" />
+                          {post.view_count || 0}
                         </span>
                       </div>
-                      <span className="flex items-center gap-1">
-                        <TrendingUp className="h-4 w-4" />
-                        {post.view_count || 0}
-                      </span>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
@@ -261,47 +274,60 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {latestPosts.map((post) => (
-              <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <CardContent className="p-6">
-                  {post.categories && (
-                    <Badge 
-                      className="mb-3"
-                      style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
-                    >
-                      {post.categories.name}
-                    </Badge>
-                  )}
-                  
-                  <h3 className="text-xl font-bold mb-3">
-                    <Link 
-                      to={`/blog/${post.slug}`}
-                      className="hover:text-blue-600 transition-colors"
-                    >
-                      {post.title}
-                    </Link>
-                  </h3>
-                  
-                  {post.excerpt && (
-                    <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
-                      {post.excerpt}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center justify-between text-sm text-slate-500">
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(post.created_at)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {post.read_time} min
-                      </span>
+            {latestPosts.map((post, index) => (
+              <Link key={post.id} to={`/blog/${post.slug}`} className="block">
+                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
+                  <CardContent className="p-0">
+                    <div className="relative">
+                      <img 
+                        src={dummyImages[(index + 3) % dummyImages.length]} 
+                        alt={post.title}
+                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                      <div className="absolute top-4 right-4">
+                        {post.categories && (
+                          <Badge 
+                            style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
+                          >
+                            {post.categories.name}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                        {post.title}
+                      </h3>
+                      
+                      {post.excerpt && (
+                        <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
+                          {post.excerpt}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center justify-between text-sm text-slate-500">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {formatDate(post.created_at)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {post.read_time} min
+                          </span>
+                        </div>
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-4 w-4" />
+                          {post.view_count || 0}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
           
@@ -338,50 +364,45 @@ const Index = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {categories.slice(0, 6).map((category, index) => (
-              <Card key={category.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
-                <CardContent className="p-0">
-                  <div className="relative">
-                    <img 
-                      src={dummyImages[index % dummyImages.length]} 
-                      alt={category.name}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <Badge 
-                        className="mb-2"
-                        style={{ backgroundColor: category.color }}
-                      >
-                        {category.blog_count} {category.blog_count === 1 ? 'Article' : 'Articles'}
-                      </Badge>
-                      <h3 className="text-xl font-bold text-white mb-2">
-                        <Link 
-                          to={`/category/${category.slug}`}
-                          className="hover:text-blue-200 transition-colors"
+              <Link key={category.id} to={`/category/${category.slug}`} className="block">
+                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
+                  <CardContent className="p-0">
+                    <div className="relative">
+                      <img 
+                        src={dummyImages[index % dummyImages.length]} 
+                        alt={category.name}
+                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <Badge 
+                          className="mb-2"
+                          style={{ backgroundColor: category.color }}
                         >
+                          {category.blog_count} {category.blog_count === 1 ? 'Article' : 'Articles'}
+                        </Badge>
+                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-200 transition-colors">
                           {category.name}
-                        </Link>
-                      </h3>
-                      {category.description && (
-                        <p className="text-slate-200 text-sm line-clamp-2">
-                          {category.description}
-                        </p>
-                      )}
+                        </h3>
+                        {category.description && (
+                          <p className="text-slate-200 text-sm line-clamp-2">
+                            {category.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="p-4">
-                    <Link 
-                      to={`/category/${category.slug}`}
-                      className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors"
-                    >
-                      <BookOpen className="mr-2 h-4 w-4" />
-                      Explore {category.name}
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+                    
+                    <div className="p-4">
+                      <span className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        Explore {category.name}
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
           
