@@ -46,24 +46,24 @@ export const UserManagement = () => {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="flex items-center gap-2">
-        <Link to="/auth">
-          <Button variant="ghost" size="sm" className="flex items-center gap-2">
-            <LogIn className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign In</span>
-          </Button>
-        </Link>
-        <Link to="/auth">
-          <Button size="sm" className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign Up</span>
-          </Button>
-        </Link>
-      </div>
-    );
-  }
+  // if (!user) {
+  //   return (
+  //     <div className="flex items-center gap-2">
+  //       <Link to="/auth">
+  //         <Button variant="ghost" size="sm" className="flex items-center gap-2">
+  //           <LogIn className="h-4 w-4" />
+  //           <span className="hidden sm:inline">Sign In</span>
+  //         </Button>
+  //       </Link>
+  //       <Link to="/auth">
+  //         <Button size="sm" className="flex items-center gap-2">
+  //           <UserPlus className="h-4 w-4" />
+  //           <span className="hidden sm:inline">Sign Up</span>
+  //         </Button>
+  //       </Link>
+  //     </div>
+  //   );
+  // }
 
   return (
     <DropdownMenu>
