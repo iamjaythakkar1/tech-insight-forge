@@ -149,6 +149,60 @@ const AdminCreatePost = () => {
     }
   };
 
+  const formatContent = (content: string) => {
+    // Enhanced content processing with better code block styling for preview
+    let html = content
+      // Headers
+      .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-6">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mb-6 mt-8">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-8 mt-10">$1</h1>')
+      
+      // Bold and Italic
+      .replace(/\*\*(.*)\*\*/gim, '<strong class="font-bold">$1</strong>')
+      .replace(/\*(.*)\*/gim, '<em class="italic">$1</em>')
+      
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">$1</a>')
+      
+      // Images
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg" />')
+      
+      // Enhanced Code blocks with better styling
+      .replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
+        return `<div class="code-block relative bg-slate-900 rounded-lg my-6 overflow-hidden shadow-lg border border-slate-700">
+          <div class="flex items-center justify-between bg-slate-800 px-4 py-3 border-b border-slate-700">
+            <span class="text-slate-300 text-sm font-medium">${lang || 'code'}</span>
+          </div>
+          <div class="p-4 overflow-x-auto">
+            <pre class="text-sm"><code class="text-slate-100 leading-relaxed">${code.trim()}</code></pre>
+          </div>
+        </div>`;
+      })
+      
+      // Inline code
+      .replace(/`([^`]+)`/gim, '<code class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-2 py-1 rounded text-sm font-mono border">$1</code>')
+      
+      // Lists
+      .replace(/^\* (.+)$/gim, '<li class="mb-2">$1</li>')
+      .replace(/^(\d+)\. (.+)$/gim, '<li class="mb-2">$1. $2</li>')
+      
+      // Blockquotes
+      .replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-6 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-r">$1</blockquote>')
+      
+      // Line breaks
+      .replace(/\n/gim, '<br />');
+
+    // Wrap consecutive list items
+    html = html.replace(/(<li[^>]*>.*<\/li>)/gims, '<ul class="list-disc pl-6 mb-4">$1</ul>');
+    
+    return html;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -200,7 +254,7 @@ const AdminCreatePost = () => {
             <h1 className="text-4xl font-bold mb-4">{title}</h1>
             <p className="text-lg text-slate-600 dark:text-slate-300 mb-8">{excerpt}</p>
             <div className="prose prose-lg max-w-none dark:prose-invert">
-              <div dangerouslySetInnerHTML={{ __html: content }} />
+              <div dangerouslySetInnerHTML={{ __html: formatContent(content) }} />
             </div>
           </article>
         </div>

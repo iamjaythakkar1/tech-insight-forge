@@ -1,0 +1,347 @@
+
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Navigation } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
+import { Calendar, Clock, Eye, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface BlogPost {
+  id: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  slug: string;
+  created_at: string;
+  read_time: number;
+  view_count: number;
+  categories: {
+    name: string;
+    color: string;
+  } | null;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  color: string;
+}
+
+const Articles = () => {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("latest");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  
+  const POSTS_PER_PAGE = 25;
+
+  useEffect(() => {
+    fetchCategories();
+    fetchPosts();
+  }, [currentPage, searchTerm, selectedCategory, sortBy, dateFrom, dateTo]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, color')
+        .order('name');
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const fetchPosts = async () => {
+    try {
+      let query = supabase
+        .from('blogs')
+        .select(`
+          id,
+          title,
+          content,
+          excerpt,
+          slug,
+          created_at,
+          read_time,
+          view_count,
+          categories (
+            name,
+            color
+          )
+        `)
+        .eq('status', 'published');
+
+      // Apply search filter
+      if (searchTerm) {
+        query = query.or(`title.ilike.%${searchTerm}%, excerpt.ilike.%${searchTerm}%`);
+      }
+
+      // Apply category filter
+      if (selectedCategory !== 'all') {
+        query = query.eq('category_id', selectedCategory);
+      }
+
+      // Apply date range filter
+      if (dateFrom) {
+        query = query.gte('created_at', dateFrom);
+      }
+      if (dateTo) {
+        query = query.lte('created_at', dateTo);
+      }
+
+      // Apply sorting
+      switch (sortBy) {
+        case 'popularity':
+          query = query.order('view_count', { ascending: false });
+          break;
+        case 'oldest':
+          query = query.order('created_at', { ascending: true });
+          break;
+        case 'latest':
+        default:
+          query = query.order('created_at', { ascending: false });
+          break;
+      }
+
+      // Get total count for pagination
+      const { count } = await supabase
+        .from('blogs')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'published');
+
+      const totalCount = count || 0;
+      setTotalPages(Math.ceil(totalCount / POSTS_PER_PAGE));
+
+      // Apply pagination
+      const from = (currentPage - 1) * POSTS_PER_PAGE;
+      const to = from + POSTS_PER_PAGE - 1;
+      query = query.range(from, to);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setPosts(data || []);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB');
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1);
+    fetchPosts();
+  };
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setSortBy("latest");
+    setDateFrom("");
+    setDateTo("");
+    setCurrentPage(1);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <Navigation />
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <Navigation />
+      
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            All Articles
+          </h1>
+          <p className="text-lg text-slate-600 dark:text-slate-300">
+            Discover our complete collection of tech insights and tutorials
+          </p>
+        </div>
+
+        {/* Filters and Search */}
+        <Card className="mb-8">
+          <CardContent className="p-6">
+            <form onSubmit={handleSearch} className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <Input
+                  placeholder="Search articles by title or description..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </form>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="latest">Latest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                  <SelectItem value="popularity">Most Popular</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Input
+                type="date"
+                placeholder="From date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+
+              <Input
+                type="date"
+                placeholder="To date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+
+              <Button onClick={resetFilters} variant="outline">
+                <Filter className="mr-2 h-4 w-4" />
+                Reset
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Articles Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+          {posts.map((post) => (
+            <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                {post.categories && (
+                  <Badge 
+                    className="mb-3"
+                    style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
+                  >
+                    {post.categories.name}
+                  </Badge>
+                )}
+                
+                <h3 className="text-xl font-bold mb-3 line-clamp-2">
+                  <Link 
+                    to={`/blog/${post.slug}`}
+                    className="hover:text-blue-600 transition-colors"
+                  >
+                    {post.title}
+                  </Link>
+                </h3>
+                
+                {post.excerpt && (
+                  <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
+                    {post.excerpt}
+                  </p>
+                )}
+                
+                <div className="flex items-center justify-between text-sm text-slate-500">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {formatDate(post.created_at)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      {post.read_time} min
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Eye className="h-4 w-4" />
+                      {post.view_count || 0}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
+            
+            <span className="text-slate-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        )}
+
+        {posts.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <h3 className="text-xl font-semibold mb-2">No articles found</h3>
+            <p className="text-slate-600 dark:text-slate-300 mb-4">
+              Try adjusting your search criteria or filters.
+            </p>
+            <Button onClick={resetFilters}>Reset Filters</Button>
+          </div>
+        )}
+      </div>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Articles;

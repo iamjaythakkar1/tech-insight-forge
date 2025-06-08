@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Navigation } from "@/components/Navigation";
-import { Calendar, User, Clock, ArrowLeft, MessageCircle, Reply } from "lucide-react";
+import { Footer } from "@/components/Footer";
+import { Calendar, User, Clock, ArrowLeft, MessageCircle, Reply, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +21,7 @@ interface BlogPost {
   slug: string;
   created_at: string;
   read_time: number;
+  view_count: number;
   categories: {
     name: string;
     color: string;
@@ -69,6 +71,7 @@ const BlogPost = () => {
           slug,
           created_at,
           read_time,
+          view_count,
           categories (
             name,
             color
@@ -85,12 +88,28 @@ const BlogPost = () => {
         setPost(null);
       } else {
         setPost(data);
+        // Increment view count
+        await incrementViewCount(data.id);
       }
     } catch (error) {
       console.error('Error fetching post:', error);
       setPost(null);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const incrementViewCount = async (postId: string) => {
+    try {
+      const { error } = await supabase.rpc('increment_view_count', {
+        post_id: postId
+      });
+
+      if (error) {
+        console.error('Error incrementing view count:', error);
+      }
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
     }
   };
 
@@ -202,6 +221,11 @@ const BlogPost = () => {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB');
+  };
+
   const processContent = (content: string) => {
     // Enhanced content processing with better code block styling
     let html = content
@@ -220,7 +244,7 @@ const BlogPost = () => {
       // Images
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg" />')
       
-      // Enhanced Code blocks with syntax highlighting and copy button
+      // Enhanced Code blocks with better styling
       .replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
         const codeId = Math.random().toString(36).substr(2, 9);
         return `<div class="code-block relative bg-slate-900 rounded-lg my-6 overflow-hidden shadow-lg border border-slate-700">
@@ -237,7 +261,9 @@ const BlogPost = () => {
               Copy
             </button>
           </div>
-          <pre class="p-4 overflow-x-auto"><code id="${codeId}" class="text-slate-100 text-sm leading-relaxed">${code.trim()}</code></pre>
+          <div class="p-4 overflow-x-auto">
+            <pre class="text-sm"><code id="${codeId}" class="text-slate-100 leading-relaxed">${code.trim()}</code></pre>
+          </div>
         </div>
         <script>
           function copyToClipboard(codeId, button) {
@@ -258,7 +284,7 @@ const BlogPost = () => {
       })
       
       // Inline code
-      .replace(/`([^`]+)`/gim, '<code class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-2 py-1 rounded text-sm font-mono">$1</code>')
+      .replace(/`([^`]+)`/gim, '<code class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-2 py-1 rounded text-sm font-mono border">$1</code>')
       
       // Lists
       .replace(/^\* (.+)$/gim, '<li class="mb-2">$1</li>')
@@ -283,6 +309,7 @@ const BlogPost = () => {
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -305,6 +332,7 @@ const BlogPost = () => {
             </Link>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -339,11 +367,15 @@ const BlogPost = () => {
             </span>
             <span className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              {new Date(post.created_at).toLocaleDateString()}
+              {formatDate(post.created_at)}
             </span>
             <span className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               {post.read_time} min read
+            </span>
+            <span className="flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              {post.view_count || 0} views
             </span>
           </div>
 
@@ -403,7 +435,7 @@ const BlogPost = () => {
                       <div>
                         <span className="font-semibold">{comment.author_name || 'Anonymous'}</span>
                         <span className="text-slate-500 text-sm ml-2">
-                          {new Date(comment.created_at).toLocaleDateString()}
+                          {formatDate(comment.created_at)}
                         </span>
                       </div>
                     </div>
@@ -451,7 +483,7 @@ const BlogPost = () => {
                             <div className="flex items-center gap-2 mb-2">
                               <span className="font-semibold text-sm">{reply.author_name || 'Anonymous'}</span>
                               <span className="text-slate-500 text-xs">
-                                {new Date(reply.created_at).toLocaleDateString()}
+                                {formatDate(reply.created_at)}
                               </span>
                             </div>
                             <p className="text-slate-700 dark:text-slate-300 text-sm">{reply.content}</p>
@@ -474,6 +506,8 @@ const BlogPost = () => {
           )}
         </section>
       </article>
+
+      <Footer />
     </div>
   );
 };
