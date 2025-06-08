@@ -11,6 +11,7 @@ import BlogPost from "./pages/BlogPost";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AdminCreatePost from "./pages/AdminCreatePost";
+import Articles from "./pages/Articles";
 import Categories from "./pages/Categories";
 import CategoriesAdmin from "./pages/CategoriesAdmin";
 import About from "./pages/About";
@@ -29,6 +30,7 @@ const App: React.FC = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/articles" element={<Articles />} />
             <Route path="/category/:slug" element={<Categories />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/about" element={<About />} />

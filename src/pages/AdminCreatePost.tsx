@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -172,6 +173,12 @@ const AdminCreatePost = () => {
         return `<div class="code-block relative bg-slate-900 rounded-lg my-6 overflow-hidden shadow-lg border border-slate-700">
           <div class="flex items-center justify-between bg-slate-800 px-4 py-3 border-b border-slate-700">
             <span class="text-slate-300 text-sm font-medium">${lang || 'code'}</span>
+            <button class="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded text-xs font-medium transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              </svg>
+              Copy
+            </button>
           </div>
           <div class="p-4 overflow-x-auto">
             <pre class="text-sm"><code class="text-slate-100 leading-relaxed">${code.trim()}</code></pre>

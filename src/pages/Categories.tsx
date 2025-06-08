@@ -1,21 +1,13 @@
 
 import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
+import { Calendar, Clock, ArrowLeft, BookOpen, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Calendar, User, ArrowLeft, Folder } from "lucide-react";
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  color: string;
-  description: string;
-  blog_count: number;
-}
 
 interface BlogPost {
   id: string;
@@ -24,34 +16,37 @@ interface BlogPost {
   slug: string;
   created_at: string;
   read_time: number;
+  view_count: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  color: string;
+  blog_count: number;
 }
 
 const Categories = () => {
   const { slug } = useParams();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
-  const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const getCategoryImage = (categoryName: string, index: number) => {
-    const images = [
-      `https://images.unsplash.com/photo-1649972904349-6e44c42644a7`,
-      `https://images.unsplash.com/photo-1488590528505-98d2b5aba04b`,
-      `https://images.unsplash.com/photo-1518770660439-4636190af475`,
-      `https://images.unsplash.com/photo-1461749280684-dccba630e2f6`,
-      `https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d`,
-      `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158`,
-      `https://images.unsplash.com/photo-1485827404703-89b55fcc595e`,
-      `https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5`,
-      `https://images.unsplash.com/photo-1531297484001-80022131f5a1`,
-      `https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7`
-    ];
-    return images[index % images.length];
-  };
+  const dummyImages = [
+    "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1484417894907-623942c8ee29?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=250&fit=crop"
+  ];
 
   useEffect(() => {
     if (slug) {
-      fetchCategoryBlogs(slug);
+      fetchCategoryAndPosts();
     } else {
       fetchAllCategories();
     }
@@ -59,229 +54,244 @@ const Categories = () => {
 
   const fetchAllCategories = async () => {
     try {
-      const { data: categoriesData, error } = await supabase
+      const { data, error } = await supabase
         .from('categories')
-        .select('*')
+        .select(`
+          id,
+          name,
+          slug,
+          description,
+          color,
+          blogs!blogs_category_id_fkey(id)
+        `)
         .order('name');
 
       if (error) throw error;
 
-      // Count blogs for each category
-      const categoriesWithCount = await Promise.all(
-        (categoriesData || []).map(async (category) => {
-          const { count } = await supabase
-            .from('blogs')
-            .select('*', { count: 'exact', head: true })
-            .eq('category_id', category.id)
-            .eq('status', 'published');
-
-          return {
-            ...category,
-            blog_count: count || 0
-          };
-        })
-      );
-
-      // Sort by blog count (highest first)
-      categoriesWithCount.sort((a, b) => b.blog_count - a.blog_count);
+      const categoriesWithCount = (data || []).map(category => ({
+        ...category,
+        blog_count: category.blogs ? category.blogs.length : 0
+      })).sort((a, b) => b.blog_count - a.blog_count);
 
       setCategories(categoriesWithCount);
     } catch (error) {
       console.error('Error fetching categories:', error);
-      toast.error('Failed to load categories');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const fetchCategoryBlogs = async (categorySlug: string) => {
+  const fetchCategoryAndPosts = async () => {
     try {
-      // First get the category
-      const { data: category, error: categoryError } = await supabase
+      // Fetch category details
+      const { data: categoryData, error: categoryError } = await supabase
         .from('categories')
         .select('*')
-        .eq('slug', categorySlug)
+        .eq('slug', slug)
         .single();
 
       if (categoryError) throw categoryError;
+      setSelectedCategory(categoryData);
 
-      setCurrentCategory({ ...category, blog_count: 0 });
-
-      // Then get blogs for this category
-      const { data: blogsData, error: blogsError } = await supabase
+      // Fetch posts for this category
+      const { data: postsData, error: postsError } = await supabase
         .from('blogs')
-        .select('id, title, excerpt, slug, created_at, read_time')
-        .eq('category_id', category.id)
+        .select(`
+          id,
+          title,
+          excerpt,
+          slug,
+          created_at,
+          read_time,
+          view_count
+        `)
+        .eq('category_id', categoryData.id)
         .eq('status', 'published')
         .order('created_at', { ascending: false });
 
-      if (blogsError) throw blogsError;
-
-      setBlogs(blogsData || []);
-      setCurrentCategory(prev => prev ? { ...prev, blog_count: blogsData?.length || 0 } : null);
+      if (postsError) throw postsError;
+      setPosts(postsData || []);
     } catch (error) {
-      console.error('Error fetching category blogs:', error);
-      toast.error('Failed to load category content');
+      console.error('Error fetching category and posts:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB');
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <Navigation />
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
         </div>
+        <Footer />
       </div>
     );
   }
 
+  // Single category view
+  if (selectedCategory) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <Navigation />
+        
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <Link to="/categories" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8 transition-colors">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Categories
+          </Link>
+
+          <div className="text-center mb-12">
+            <Badge 
+              className="mb-4 text-lg px-4 py-2"
+              style={{ backgroundColor: selectedCategory.color + '20', color: selectedCategory.color }}
+            >
+              {selectedCategory.name}
+            </Badge>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-slate-800 dark:text-white">
+              {selectedCategory.name} Articles
+            </h1>
+            {selectedCategory.description && (
+              <p className="text-lg text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+                {selectedCategory.description}
+              </p>
+            )}
+          </div>
+
+          {posts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {posts.map((post) => (
+                <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-bold mb-3">
+                      <Link 
+                        to={`/blog/${post.slug}`}
+                        className="hover:text-blue-600 transition-colors"
+                      >
+                        {post.title}
+                      </Link>
+                    </h3>
+                    
+                    {post.excerpt && (
+                      <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
+                        {post.excerpt}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center justify-between text-sm text-slate-500">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(post.created_at)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {post.read_time} min
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <BookOpen className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No articles found</h3>
+              <p className="text-slate-600 dark:text-slate-300">
+                This category doesn't have any published articles yet.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <Footer />
+      </div>
+    );
+  }
+
+  // All categories view
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Navigation />
       
       <div className="max-w-7xl mx-auto px-6 py-12">
-        {currentCategory ? (
-          // Single category view
-          <>
-            <Link to="/categories" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8 transition-colors">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Categories
-            </Link>
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Browse Categories
+          </h1>
+          <p className="text-lg text-slate-600 dark:text-slate-300">
+            Explore articles by topic and discover your interests
+          </p>
+        </div>
 
-            <div className="mb-8">
-              <div className="flex items-center gap-4 mb-4">
-                <div 
-                  className="w-16 h-16 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: currentCategory.color }}
-                >
-                  <span className="text-white font-bold text-2xl">
-                    {currentCategory.name.charAt(0)}
-                  </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {categories.map((category, index) => (
+            <Card key={category.id} className="overflow-hidden hover:shadow-xl transition-shadow group">
+              <CardContent className="p-0">
+                <div className="relative">
+                  <img 
+                    src={dummyImages[index % dummyImages.length]} 
+                    alt={category.name}
+                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <Badge 
+                      className="mb-2"
+                      style={{ backgroundColor: category.color }}
+                    >
+                      {category.blog_count} {category.blog_count === 1 ? 'Article' : 'Articles'}
+                    </Badge>
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      <Link 
+                        to={`/category/${category.slug}`}
+                        className="hover:text-blue-200 transition-colors"
+                      >
+                        {category.name}
+                      </Link>
+                    </h3>
+                    {category.description && (
+                      <p className="text-slate-200 text-sm line-clamp-2">
+                        {category.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-4xl font-bold text-slate-800 dark:text-white">
-                    {currentCategory.name}
-                  </h1>
-                  <p className="text-slate-600 dark:text-slate-300">
-                    {currentCategory.blog_count} article{currentCategory.blog_count !== 1 ? 's' : ''}
-                  </p>
+                
+                <div className="p-4">
+                  <Link 
+                    to={`/category/${category.slug}`}
+                    className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    <BookOpen className="mr-2 h-4 w-4" />
+                    Explore {category.name}
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Link>
                 </div>
-              </div>
-              {currentCategory.description && (
-                <p className="text-lg text-slate-600 dark:text-slate-300">
-                  {currentCategory.description}
-                </p>
-              )}
-            </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
-            {blogs.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {blogs.map((blog) => (
-                  <Link key={blog.id} to={`/blog/${blog.slug}`} className="group">
-                    <Card className="h-full overflow-hidden hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-                      <div className="relative h-48 overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-white text-6xl font-bold opacity-20">
-                            {blog.title.charAt(0)}
-                          </span>
-                        </div>
-                      </div>
-                      <CardContent className="p-6">
-                        <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                          {blog.title}
-                        </h3>
-                        <p className="text-slate-600 dark:text-slate-300 text-sm mb-4 line-clamp-3">
-                          {blog.excerpt}
-                        </p>
-                        <div className="flex items-center justify-between text-xs text-slate-500">
-                          <div className="flex items-center gap-4">
-                            <span className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              Author
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(blog.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <span>{blog.read_time} min read</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Folder className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No articles yet</h3>
-                  <p className="text-slate-600">
-                    This category doesn't have any published articles yet. Check back soon!
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </>
-        ) : (
-          // All categories view
-          <>
-            <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-5xl font-bold text-slate-800 dark:text-white mb-4">
-                Browse Categories
-              </h1>
-              <p className="text-xl text-slate-600 dark:text-slate-300">
-                Explore our content organized by topics
-              </p>
-            </div>
-
-            {categories.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {categories.map((category, index) => (
-                  <Link key={category.id} to={`/category/${category.slug}`}>
-                    <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer">
-                      <div className="relative h-32 overflow-hidden">
-                        <img 
-                          src={getCategoryImage(category.name, index)}
-                          alt={category.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-white font-bold text-xl">
-                            {category.name}
-                          </span>
-                        </div>
-                      </div>
-                      <CardContent className="p-4 text-center">
-                        <p className="text-slate-500 text-sm">{category.blog_count} article{category.blog_count !== 1 ? 's' : ''}</p>
-                        {category.description && (
-                          <p className="text-slate-600 dark:text-slate-300 text-xs mt-2 line-clamp-2">
-                            {category.description}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Folder className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No categories yet</h3>
-                  <p className="text-slate-600">
-                    Categories will appear here once they are created.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </>
+        {categories.length === 0 && (
+          <div className="text-center py-12">
+            <BookOpen className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No categories found</h3>
+            <p className="text-slate-600 dark:text-slate-300">
+              Categories will appear here once they're created.
+            </p>
+          </div>
         )}
       </div>
+
+      <Footer />
     </div>
   );
 };

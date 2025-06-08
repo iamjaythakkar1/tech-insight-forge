@@ -41,6 +41,7 @@ export type Database = {
           status: Database["public"]["Enums"]["blog_status"] | null
           title: string
           updated_at: string | null
+          view_count: number | null
         }
         Insert: {
           author_id: string
@@ -55,6 +56,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["blog_status"] | null
           title: string
           updated_at?: string | null
+          view_count?: number | null
         }
         Update: {
           author_id?: string
@@ -69,6 +71,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["blog_status"] | null
           title?: string
           updated_at?: string | null
+          view_count?: number | null
         }
         Relationships: [
           {
@@ -163,7 +166,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_view_count: {
+        Args: { post_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       blog_status: "draft" | "published"
