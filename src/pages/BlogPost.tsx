@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { Calendar, Clock, Eye, ArrowLeft, User } from "lucide-react";
+import { Calendar, Clock, Eye, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface BlogPost {
@@ -19,10 +19,6 @@ interface BlogPost {
   categories: {
     name: string;
     color: string;
-  } | null;
-  profiles: {
-    username: string;
-    full_name: string;
   } | null;
 }
 
@@ -52,10 +48,6 @@ const BlogPost = () => {
           categories (
             name,
             color
-          ),
-          profiles (
-            username,
-            full_name
           )
         `)
         .eq('slug', slug)
@@ -105,34 +97,34 @@ const BlogPost = () => {
         const languageLabel = lang || 'code';
         const cleanCode = code.trim();
         const codeId = Math.random().toString(36).substr(2, 9);
-        return `<div class="relative my-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
-          <div class="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-            <span class="text-sm font-medium text-slate-600 dark:text-slate-300 capitalize">${languageLabel}</span>
+        return `<div class="relative my-6 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 overflow-hidden shadow-sm">
+          <div class="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-300 capitalize font-mono">${languageLabel}</span>
             <button 
               onclick="
                 const code = document.getElementById('code-${codeId}').textContent;
                 navigator.clipboard.writeText(code).then(() => {
                   this.textContent = 'Copied!';
-                  this.classList.add('bg-green-100', 'dark:bg-green-900', 'text-green-700', 'dark:text-green-300');
+                  this.classList.add('bg-green-100', 'dark:bg-green-800', 'text-green-700', 'dark:text-green-300');
                   setTimeout(() => {
                     this.textContent = 'Copy';
-                    this.classList.remove('bg-green-100', 'dark:bg-green-900', 'text-green-700', 'dark:text-green-300');
+                    this.classList.remove('bg-green-100', 'dark:bg-green-800', 'text-green-700', 'dark:text-green-300');
                   }, 2000);
                 });
               "
-              class="px-3 py-1.5 text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-all duration-200"
+              class="px-3 py-1.5 text-xs font-medium bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-500 transition-all duration-200"
             >
               Copy
             </button>
           </div>
-          <div class="p-4 overflow-x-auto bg-slate-50 dark:bg-slate-900">
-            <pre class="text-sm leading-relaxed"><code id="code-${codeId}" class="text-slate-800 dark:text-slate-200 font-mono">${cleanCode}</code></pre>
+          <div class="p-4 overflow-x-auto">
+            <pre class="text-sm leading-relaxed"><code id="code-${codeId}" class="text-slate-800 dark:text-slate-200 font-mono" style="font-family: 'Courier New', Courier, monospace; line-height: 1.5;">${cleanCode}</code></pre>
           </div>
         </div>`;
       })
       
       // Inline code with better contrast
-      .replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm font-mono bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-700">$1</code>')
+      .replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-600">$1</code>')
       
       // Lists
       .replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>')
@@ -210,12 +202,6 @@ const BlogPost = () => {
             )}
             
             <div className="flex items-center gap-6 text-slate-500 text-sm">
-              {post.profiles && (
-                <span className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {post.profiles.full_name || post.profiles.username}
-                </span>
-              )}
               <span className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 {formatDate(post.created_at)}

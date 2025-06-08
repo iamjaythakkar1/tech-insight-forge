@@ -1,87 +1,77 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
 import { RichEditor } from "@/components/RichEditor";
-import { ArrowLeft, Save, Eye } from "lucide-react";
-import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Calendar, Clock, Eye } from "lucide-react";
 
 interface Category {
   id: string;
   name: string;
+  color: string;
+}
+
+interface BlogPost {
+  id?: string;
+  title: string;
+  content: string;
+  excerpt: string;
   slug: string;
+  category_id: string;
+  read_time: number;
+  status: 'draft' | 'published';
 }
 
 const AdminCreatePost = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
-  const [title, setTitle] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [content, setContent] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [slug, setSlug] = useState("");
-  const [status, setStatus] = useState<'draft' | 'published'>('draft');
-  const [readTime, setReadTime] = useState(5);
+  const { toast } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPreview, setIsPreview] = useState(false);
-
-  const isEditing = !!id;
-
-  useEffect(() => {
-    console.log('AdminCreatePost - Auth state:', { user, loading });
-    if (!loading && !user) {
-      console.log('Redirecting to login...');
-      navigate("/login");
-      return;
-    }
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    if (user) {
-      fetchCategories();
-      if (isEditing) {
-        fetchBlog();
-      }
-    }
-  }, [isEditing, id, user]);
+  const [loading, setLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  
+  const [formData, setFormData] = useState<BlogPost>({
+    title: "",
+    content: "",
+    excerpt: "",
+    slug: "",
+    category_id: "",
+    read_time: 5,
+    status: 'draft'
+  });
 
   useEffect(() => {
-    if (title && !isEditing) {
-      const generatedSlug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
-      setSlug(generatedSlug);
+    fetchCategories();
+    if (id) {
+      fetchPost();
     }
-  }, [title, isEditing]);
+  }, [id]);
 
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
         .from('categories')
-        .select('id, name, slug')
+        .select('id, name, color')
         .order('name');
 
       if (error) throw error;
-      setCategories(data);
+      setCategories(data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
-      toast.error('Failed to fetch categories');
     }
   };
 
-  const fetchBlog = async () => {
+  const fetchPost = async () => {
     if (!id) return;
-
+    
     try {
       const { data, error } = await supabase
         .from('blogs')
@@ -90,67 +80,105 @@ const AdminCreatePost = () => {
         .single();
 
       if (error) throw error;
-
-      setTitle(data.title);
-      setExcerpt(data.excerpt || '');
-      setContent(data.content);
-      setCategoryId(data.category_id || '');
-      setSlug(data.slug);
-      setStatus(data.status);
-      setReadTime(data.read_time || 5);
+      if (data) {
+        setFormData(data);
+      }
     } catch (error) {
-      console.error('Error fetching blog:', error);
-      toast.error('Failed to fetch blog');
-      navigate('/dashboard');
+      console.error('Error fetching post:', error);
     }
   };
 
-  const handleSave = async (saveStatus: 'draft' | 'published' = status) => {
-    if (!title.trim() || !content.trim() || !categoryId || !slug.trim()) {
-      toast.error("Please fill in all required fields");
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+  };
+
+  const calculateReadTime = (content: string) => {
+    const wordsPerMinute = 200;
+    const words = content.split(/\s+/).length;
+    return Math.max(1, Math.ceil(words / wordsPerMinute));
+  };
+
+  const handleInputChange = (field: keyof BlogPost, value: string | number) => {
+    const updates: Partial<BlogPost> = { [field]: value };
+    
+    if (field === 'title') {
+      updates.slug = generateSlug(value as string);
+    }
+    
+    if (field === 'content') {
+      updates.read_time = calculateReadTime(value as string);
+    }
+    
+    setFormData(prev => ({ ...prev, ...updates }));
+  };
+
+  const handleSave = async (status: 'draft' | 'published') => {
+    if (!formData.title.trim() || !formData.content.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in the title and content",
+        variant: "destructive",
+      });
       return;
     }
 
-    setIsLoading(true);
+    if (!formData.category_id) {
+      toast({
+        title: "Error",
+        description: "Please select a category",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    setLoading(true);
+    
     try {
-      const blogData = {
-        title: title.trim(),
-        content,
-        excerpt: excerpt.trim(),
-        category_id: categoryId,
-        slug: slug.trim(),
-        status: saveStatus,
-        read_time: readTime,
-        author_id: user?.id,
+      const postData = {
+        ...formData,
+        status,
+        author_id: '00000000-0000-0000-0000-000000000000' // Placeholder for now
       };
 
       let result;
-      if (isEditing) {
+      if (id) {
         result = await supabase
           .from('blogs')
-          .update(blogData)
+          .update(postData)
           .eq('id', id);
       } else {
         result = await supabase
           .from('blogs')
-          .insert([blogData]);
+          .insert([postData]);
       }
 
       if (result.error) throw result.error;
 
-      toast.success(`Blog ${isEditing ? 'updated' : 'created'} successfully!`);
-      navigate("/dashboard");
+      toast({
+        title: "Success",
+        description: `Post ${id ? 'updated' : 'created'} successfully`,
+      });
+
+      navigate('/dashboard');
     } catch (error) {
-      console.error('Error saving blog:', error);
-      toast.error('Failed to save blog');
+      console.error('Error saving post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save post",
+        variant: "destructive",
+      });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const formatContent = (content: string) => {
-    // Enhanced content processing with proper code block styling
+  const formatContentForPreview = (content: string) => {
+    // Enhanced content processing with improved code block styling
     let html = content
       // Headers
       .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-6 text-slate-800 dark:text-white">$1</h3>')
@@ -167,30 +195,39 @@ const AdminCreatePost = () => {
       // Images
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg border border-slate-200 dark:border-slate-700" />')
       
-      // Enhanced Code blocks with improved styling
+      // Enhanced Code blocks with copy functionality and improved styling
       .replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
         const languageLabel = lang || 'code';
         const cleanCode = code.trim();
-        return `<div class="relative my-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 overflow-hidden">
-          <div class="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-            <span class="text-sm font-medium text-slate-600 dark:text-slate-300">${languageLabel}</span>
+        const codeId = Math.random().toString(36).substr(2, 9);
+        return `<div class="relative my-6 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 overflow-hidden shadow-sm">
+          <div class="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-300 capitalize font-mono">${languageLabel}</span>
             <button 
-              onclick="navigator.clipboard.writeText(\`${cleanCode.replace(/`/g, '\\`')}\`); 
-              this.textContent = 'Copied!'; 
-              setTimeout(() => this.textContent = 'Copy', 2000);"
-              class="px-3 py-1.5 text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+              onclick="
+                const code = document.getElementById('code-${codeId}').textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                  this.textContent = 'Copied!';
+                  this.classList.add('bg-green-100', 'dark:bg-green-800', 'text-green-700', 'dark:text-green-300');
+                  setTimeout(() => {
+                    this.textContent = 'Copy';
+                    this.classList.remove('bg-green-100', 'dark:bg-green-800', 'text-green-700', 'dark:text-green-300');
+                  }, 2000);
+                });
+              "
+              class="px-3 py-1.5 text-xs font-medium bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-300 dark:hover:bg-slate-500 transition-all duration-200"
             >
               Copy
             </button>
           </div>
           <div class="p-4 overflow-x-auto">
-            <pre class="text-sm leading-relaxed"><code class="text-slate-800 dark:text-slate-200 font-mono">${cleanCode}</code></pre>
+            <pre class="text-sm leading-relaxed"><code id="code-${codeId}" class="text-slate-800 dark:text-slate-200 font-mono" style="font-family: 'Courier New', Courier, monospace; line-height: 1.5;">${cleanCode}</code></pre>
           </div>
         </div>`;
       })
       
-      // Inline code
-      .replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm font-mono bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-700">$1</code>')
+      // Inline code with better contrast
+      .replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-600">$1</code>')
       
       // Lists
       .replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>')
@@ -213,59 +250,75 @@ const AdminCreatePost = () => {
     return date.toLocaleDateString('en-GB');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <Navigation />
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    );
-  }
+  const selectedCategory = categories.find(cat => cat.id === formData.category_id);
 
-  if (!user) {
+  if (showPreview) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <Navigation />
-        <div className="max-w-4xl mx-auto px-6 py-12 text-center">
-          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-          <p className="text-slate-600 mb-4">Please log in to create or edit posts.</p>
-          <Link to="/login">
-            <Button>Go to Login</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (isPreview) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <Navigation />
+        
         <div className="max-w-4xl mx-auto px-6 py-12">
-          <div className="flex items-center justify-between mb-8">
-            <Button onClick={() => setIsPreview(false)} variant="outline">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+          <div className="flex justify-between items-center mb-8">
+            <Button 
+              onClick={() => setShowPreview(false)}
+              variant="outline"
+            >
               Back to Editor
             </Button>
             <div className="flex gap-2">
-              <Button onClick={() => handleSave('draft')} variant="outline" disabled={isLoading}>
+              <Button onClick={() => handleSave('draft')} disabled={loading}>
                 Save as Draft
               </Button>
-              <Button onClick={() => handleSave('published')} disabled={isLoading}>
-                <Save className="mr-2 h-4 w-4" />
-                {isLoading ? 'Saving...' : 'Publish'}
+              <Button onClick={() => handleSave('published')} disabled={loading}>
+                Publish
               </Button>
             </div>
           </div>
-          
-          <article className="prose prose-lg max-w-none dark:prose-invert">
-            <h1 className="text-4xl font-bold mb-4 text-slate-800 dark:text-white">{title}</h1>
-            <p className="text-lg text-slate-600 dark:text-slate-300 mb-8">{excerpt}</p>
-            <div dangerouslySetInnerHTML={{ __html: formatContent(content) }} />
+
+          <article>
+            <header className="mb-8">
+              {selectedCategory && (
+                <Badge 
+                  className="mb-4"
+                  style={{ backgroundColor: selectedCategory.color + '20', color: selectedCategory.color }}
+                >
+                  {selectedCategory.name}
+                </Badge>
+              )}
+              
+              <h1 className="text-4xl md:text-5xl font-bold mb-6 text-slate-800 dark:text-white">
+                {formData.title || 'Untitled Post'}
+              </h1>
+              
+              {formData.excerpt && (
+                <p className="text-xl text-slate-600 dark:text-slate-300 mb-6">
+                  {formData.excerpt}
+                </p>
+              )}
+              
+              <div className="flex items-center gap-6 text-slate-500 text-sm">
+                <span className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  {formatDate(new Date().toISOString())}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  {formData.read_time} min read
+                </span>
+                <span className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  0 views
+                </span>
+              </div>
+            </header>
+
+            <div className="prose prose-lg max-w-none dark:prose-invert">
+              <div dangerouslySetInnerHTML={{ __html: formatContentForPreview(formData.content) }} />
+            </div>
           </article>
         </div>
+
+        <Footer />
       </div>
     );
   }
@@ -275,106 +328,103 @@ const AdminCreatePost = () => {
       <Navigation />
       
       <div className="max-w-4xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <Link to="/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Link>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">{id ? 'Edit Post' : 'Create New Post'}</h1>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsPreview(true)}>
-              <Eye className="mr-2 h-4 w-4" />
+            <Button onClick={() => setShowPreview(true)} variant="outline">
               Preview
             </Button>
-            <Button onClick={() => handleSave('draft')} variant="outline" disabled={isLoading}>
+            <Button onClick={() => handleSave('draft')} disabled={loading}>
               Save as Draft
             </Button>
-            <Button onClick={() => handleSave('published')} disabled={isLoading}>
-              <Save className="mr-2 h-4 w-4" />
-              {isLoading ? 'Saving...' : 'Publish'}
+            <Button onClick={() => handleSave('published')} disabled={loading}>
+              Publish
             </Button>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{isEditing ? 'Edit Blog Post' : 'Create New Blog Post'}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Post Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="title">Title *</Label>
+                <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
-                  placeholder="Enter your blog post title..."
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="text-lg"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  placeholder="Enter post title..."
                 />
               </div>
-              
+
               <div>
-                <Label htmlFor="slug">Slug *</Label>
+                <Label htmlFor="slug">Slug</Label>
                 <Input
                   id="slug"
-                  placeholder="blog-post-url-slug"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
+                  value={formData.slug}
+                  onChange={(e) => handleInputChange('slug', e.target.value)}
+                  placeholder="post-slug"
                 />
               </div>
-            </div>
 
-            <div>
-              <Label htmlFor="excerpt">Excerpt</Label>
-              <Textarea
-                id="excerpt"
-                placeholder="Write a brief excerpt..."
-                value={excerpt}
-                onChange={(e) => setExcerpt(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="category">Category *</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="readTime">Read Time (minutes)</Label>
+                <Label htmlFor="excerpt">Excerpt</Label>
                 <Input
-                  id="readTime"
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={readTime}
-                  onChange={(e) => setReadTime(parseInt(e.target.value) || 5)}
+                  id="excerpt"
+                  value={formData.excerpt}
+                  onChange={(e) => handleInputChange('excerpt', e.target.value)}
+                  placeholder="Brief description of the post..."
                 />
               </div>
-            </div>
 
-            <div>
-              <Label htmlFor="content">Content *</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Category</Label>
+                  <Select value={formData.category_id} onValueChange={(value) => handleInputChange('category_id', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="read-time">Read Time (minutes)</Label>
+                  <Input
+                    id="read-time"
+                    type="number"
+                    value={formData.read_time}
+                    onChange={(e) => handleInputChange('read_time', parseInt(e.target.value) || 5)}
+                    min="1"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Content</CardTitle>
+            </CardHeader>
+            <CardContent>
               <RichEditor
-                content={content}
-                onChange={setContent}
-                placeholder="Write your blog post content..."
+                value={formData.content}
+                onChange={(value) => handleInputChange('content', value)}
               />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      <Footer />
     </div>
   );
 };
