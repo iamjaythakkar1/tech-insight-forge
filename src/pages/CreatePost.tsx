@@ -180,7 +180,7 @@ const CreatePost = () => {
             <div>
               <Label htmlFor="content">Content *</Label>
               <RichEditor
-                content={content}
+                value={content}
                 onChange={setContent}
                 placeholder="Write your blog post content..."
               />
