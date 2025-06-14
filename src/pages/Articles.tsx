@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { Calendar, Clock, Eye, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface BlogPost {
   id: string;
@@ -33,6 +34,10 @@ interface Category {
 }
 
 const Articles = () => {
+  const { user } = useAuth();
+  const location = useLocation();
+  const isAdminView = location.pathname === "/admin/articles" && user;
+  
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +46,7 @@ const Articles = () => {
   const [sortBy, setSortBy] = useState("latest");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [statusFilter, setStatusFilter] = useState(isAdminView ? "all" : "published");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
@@ -62,7 +68,7 @@ const Articles = () => {
   useEffect(() => {
     fetchCategories();
     fetchPosts();
-  }, [currentPage, searchTerm, selectedCategory, sortBy, dateFrom, dateTo]);
+  }, [currentPage, searchTerm, selectedCategory, sortBy, dateFrom, dateTo, statusFilter, isAdminView]);
 
   const fetchCategories = async () => {
     try {
@@ -91,12 +97,17 @@ const Articles = () => {
           created_at,
           read_time,
           view_count,
+          status,
           categories (
             name,
             color
           )
-        `)
-        .eq('status', 'published');
+        `);
+
+      // Apply status filter based on view (admin can see all, public only sees published)
+      if (statusFilter !== "all") {
+        query = query.eq('status', statusFilter);
+      }
 
       // Apply search filter
       if (searchTerm) {
@@ -134,7 +145,7 @@ const Articles = () => {
       const { count } = await supabase
         .from('blogs')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'published');
+        .eq('status', isAdminView ? statusFilter !== "all" ? statusFilter : 'published' : 'published');
 
       const totalCount = count || 0;
       setTotalPages(Math.ceil(totalCount / POSTS_PER_PAGE));
@@ -172,6 +183,7 @@ const Articles = () => {
     setSortBy("latest");
     setDateFrom("");
     setDateTo("");
+    setStatusFilter(isAdminView ? "all" : "published");
     setCurrentPage(1);
   };
 
@@ -194,10 +206,13 @@ const Articles = () => {
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            All Articles
+            {isAdminView ? "Manage Articles" : "All Articles"}
           </h1>
           <p className="text-lg text-slate-600 dark:text-slate-300">
-            Discover our complete collection of tech insights and tutorials
+            {isAdminView 
+              ? "Manage and filter your blog articles" 
+              : "Discover our complete collection of tech insights and tutorials"
+            }
           </p>
         </div>
 
@@ -216,7 +231,7 @@ const Articles = () => {
               </div>
             </form>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-4">
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filter by category" />
@@ -242,11 +257,25 @@ const Articles = () => {
                 </SelectContent>
               </Select>
 
+              {isAdminView && (
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="draft">Drafts</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+
               <Input
                 type="date"
                 placeholder="From date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
+                aria-label="From date"
               />
 
               <Input
@@ -254,6 +283,7 @@ const Articles = () => {
                 placeholder="To date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
+                aria-label="To date"
               />
 
               <Button onClick={resetFilters} variant="outline">
@@ -267,7 +297,11 @@ const Articles = () => {
         {/* Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           {posts.map((post, index) => (
-            <Link key={post.id} to={`/blog/${post.slug}`} className="block">
+            <Link 
+              key={post.id} 
+              to={isAdminView ? `/admin/edit/${post.id}` : `/blog/${post.slug}`}
+              className="block group"
+            >
               <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
                 <CardContent className="p-0">
                   <div className="relative">
@@ -278,7 +312,12 @@ const Articles = () => {
                       loading="lazy"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                    <div className="absolute top-4 right-4">
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      {isAdminView && post.status && (
+                        <Badge variant={post.status === 'published' ? 'default' : 'secondary'}>
+                          {post.status}
+                        </Badge>
+                      )}
                       {post.categories && (
                         <Badge 
                           style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}

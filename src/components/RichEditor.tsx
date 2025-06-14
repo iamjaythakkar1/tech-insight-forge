@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { 
   Bold, 
   Italic, 
@@ -16,9 +17,10 @@ import {
   Type,
   Upload,
   Copy,
-  Youtube
+  Youtube,
+  Eye,
+  Edit
 } from "lucide-react";
-import { toast } from "sonner";
 
 export const RichEditor = ({ content, onChange, placeholder }) => {
   const [isPreview, setIsPreview] = useState(false);
@@ -92,11 +94,6 @@ export const RichEditor = ({ content, onChange, placeholder }) => {
     }
   };
 
-  const copyCode = (code) => {
-    navigator.clipboard.writeText(code);
-    toast.success("Code copied to clipboard!");
-  };
-
   const processContent = (text) => {
     // Convert markdown-like syntax to HTML
     let html = text
@@ -115,35 +112,78 @@ export const RichEditor = ({ content, onChange, placeholder }) => {
       // Images
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" style="max-width: 100%; height: auto; border-radius: 8px; margin: 16px 0;" />')
       
-      // Code blocks
+      // Code blocks with language and copy button
       .replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
-        return `<div class="code-block" style="position: relative; background: #1e293b; color: #e2e8f0; padding: 20px; border-radius: 8px; margin: 16px 0; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; overflow-x: auto;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 12px;">
-            <span style="color: #64748b;">${lang || 'code'}</span>
-            <button onclick="navigator.clipboard.writeText(\`${code.trim()}\`); alert('Code copied!')" style="background: #334155; border: none; color: #e2e8f0; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Copy</button>
+        const uniqueId = `code-${Math.random().toString(36).substring(2, 9)}`;
+        return `
+          <div class="code-block relative rounded-lg overflow-hidden my-6">
+            <div class="flex justify-between items-center px-4 py-2 bg-slate-800 dark:bg-slate-700 text-white">
+              <span class="text-sm font-mono">${lang || 'code'}</span>
+              <button 
+                onclick="(() => {
+                  navigator.clipboard.writeText(document.getElementById('${uniqueId}').textContent);
+                  const toast = document.createElement('div');
+                  toast.className = 'fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-2 rounded shadow-lg z-50 animate-fade-in-up';
+                  toast.textContent = 'Code copied!';
+                  document.body.appendChild(toast);
+                  setTimeout(() => toast.remove(), 2000);
+                })()"
+                class="bg-slate-700 hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-500 text-white text-xs px-2 py-1 rounded flex items-center gap-1 transition-colors duration-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy
+              </button>
+            </div>
+            <pre class="m-0 p-4 bg-slate-100 dark:bg-slate-800 overflow-x-auto text-sm"><code id="${uniqueId}" class="font-mono text-slate-800 dark:text-slate-200">${code.trim()}</code></pre>
           </div>
-          <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;"><code>${code.trim()}</code></pre>
-        </div>`;
+        `;
       })
       
       // Inline code
-      .replace(/`([^`]+)`/gim, '<code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: Monaco, Menlo, monospace; font-size: 0.9em;">$1</code>')
+      .replace(/`([^`]+)`/gim, '<code class="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-800 dark:text-slate-200 font-mono text-sm">$1</code>')
       
       // Lists
       .replace(/^\* (.+)$/gim, '<li>$1</li>')
       .replace(/^(\d+)\. (.+)$/gim, '<li>$1. $2</li>')
       
       // Blockquotes
-      .replace(/^> (.+)$/gim, '<blockquote style="border-left: 4px solid #3b82f6; padding-left: 16px; margin: 16px 0; font-style: italic; color: #64748b;">$1</blockquote>')
+      .replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-4 py-2 my-4 italic text-slate-600 dark:text-slate-400">$1</blockquote>')
       
       // Line breaks
       .replace(/\n/gim, '<br />');
 
     // Wrap consecutive list items
-    html = html.replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>');
+    html = html.replace(/(<li>.*<\/li>)/gims, '<ul class="list-disc pl-5 my-4">$1</ul>');
     
     return html;
   };
+
+  // Add a dynamic style element for the toast animation
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fade-in-up {
+        from {
+          opacity: 0;
+          transform: translateY(1rem);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fade-in-up 0.3s ease-out forwards;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   return (
     <div className="border border-slate-200 dark:border-slate-700 rounded-lg">
@@ -256,7 +296,17 @@ export const RichEditor = ({ content, onChange, placeholder }) => {
             size="sm"
             onClick={() => setIsPreview(!isPreview)}
           >
-            {isPreview ? "Edit" : "Preview"}
+            {isPreview ? (
+              <>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </>
+            ) : (
+              <>
+                <Eye className="mr-2 h-4 w-4" />
+                Preview
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -356,3 +406,5 @@ export const RichEditor = ({ content, onChange, placeholder }) => {
     </div>
   );
 };
+
+export const useEffect = React.useEffect;

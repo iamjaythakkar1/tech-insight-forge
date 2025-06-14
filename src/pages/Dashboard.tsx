@@ -34,6 +34,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [categories, setCategories] = useState<CategoryType[]>([]);
+  const [userCount, setUserCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'blogs' | 'categories' | 'users'>('blogs');
 
@@ -50,6 +51,7 @@ const Dashboard = () => {
     if (user) {
       fetchBlogs();
       fetchCategories();
+      fetchUserCount();
     }
   }, [user]);
 
@@ -98,6 +100,19 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Failed to fetch categories');
+    }
+  };
+
+  const fetchUserCount = async () => {
+    try {
+      const { data, error } = await supabase.auth.admin.listUsers();
+      
+      if (error) throw error;
+      
+      setUserCount(data.users.length);
+    } catch (error) {
+      console.error('Error fetching user count:', error);
+      setUserCount(0);
     }
   };
 
@@ -241,10 +256,10 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Eye className="h-8 w-8 text-green-600" />
+                <Users className="h-8 w-8 text-green-600" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-slate-600">Published</p>
-                  <p className="text-2xl font-bold">{blogs.filter(b => b.status === 'published').length}</p>
+                  <p className="text-sm font-medium text-slate-600">Total Users</p>
+                  <p className="text-2xl font-bold">{userCount}</p>
                 </div>
               </div>
             </CardContent>

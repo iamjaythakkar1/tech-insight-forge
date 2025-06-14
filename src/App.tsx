@@ -39,6 +39,7 @@ const App: React.FC = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin/create" element={<AdminCreatePost />} />
             <Route path="/admin/edit/:id" element={<AdminCreatePost />} />
+            <Route path="/admin/articles" element={<Articles />} />
             <Route path="/categories-admin" element={<CategoriesAdmin />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
