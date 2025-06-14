@@ -15,15 +15,9 @@ import { User, LogOut, Settings } from "lucide-react";
 export const HeaderUserActions = () => {
   const { user, signOut, isAdmin } = useAuth();
 
+  // Don't render anything if user is not logged in
   if (!user) {
-    return (
-      <Link to="/login">
-        <Button variant="outline" size="sm">
-          <User className="mr-2 h-4 w-4" />
-          Login
-        </Button>
-      </Link>
-    );
+    return null;
   }
 
   return (

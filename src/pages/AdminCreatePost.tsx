@@ -422,7 +422,7 @@ const AdminCreatePost = () => {
             </CardHeader>
             <CardContent>
               <RichEditor
-                content={formData.content}
+                value={formData.content}
                 onChange={(value) => handleInputChange('content', value)}
                 placeholder="Write your post content here..."
               />

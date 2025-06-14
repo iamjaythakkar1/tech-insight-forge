@@ -7,9 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sun, Moon, Monitor, BookOpen } from "lucide-react";
+import { Sun, Moon, Monitor } from "lucide-react";
 
-type Theme = "light" | "dark" | "system" | "reading";
+type Theme = "light" | "dark" | "system";
 
 export const ThemeToggle = () => {
   const [theme, setTheme] = useState<Theme>("system");
@@ -24,27 +24,21 @@ export const ThemeToggle = () => {
     const root = document.documentElement;
     
     // Remove all theme classes
-    root.classList.remove("light", "dark", "reading");
+    root.classList.remove("light", "dark");
     
-    if (newTheme === "reading") {
-      root.classList.add("reading");
-      root.style.setProperty("--background", "250 246 234"); // Sepia background
-      root.style.setProperty("--foreground", "41 37 36"); // Dark brown text
+    // Reset custom properties
+    root.style.removeProperty("--background");
+    root.style.removeProperty("--foreground");
+    
+    if (newTheme === "dark") {
+      root.classList.add("dark");
+    } else if (newTheme === "light") {
+      root.classList.add("light");
     } else {
-      // Reset custom properties
-      root.style.removeProperty("--background");
-      root.style.removeProperty("--foreground");
-      
-      if (newTheme === "dark") {
+      // System theme
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (isDark) {
         root.classList.add("dark");
-      } else if (newTheme === "light") {
-        root.classList.add("light");
-      } else {
-        // System theme
-        const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        if (isDark) {
-          root.classList.add("dark");
-        }
       }
     }
   };
@@ -61,8 +55,6 @@ export const ThemeToggle = () => {
         return <Sun className="h-4 w-4" />;
       case "dark":
         return <Moon className="h-4 w-4" />;
-      case "reading":
-        return <BookOpen className="h-4 w-4" />;
       default:
         return <Monitor className="h-4 w-4" />;
     }
@@ -85,10 +77,6 @@ export const ThemeToggle = () => {
           <Moon className="mr-2 h-4 w-4" />
           Dark
         </DropdownMenuItem>
-        {/* <DropdownMenuItem onClick={() => handleThemeChange("reading")}>
-          <BookOpen className="mr-2 h-4 w-4" />
-          Reading Mode
-        </DropdownMenuItem> */}
         <DropdownMenuItem onClick={() => handleThemeChange("system")}>
           <Monitor className="mr-2 h-4 w-4" />
           System

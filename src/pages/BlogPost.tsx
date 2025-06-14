@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
@@ -46,7 +45,6 @@ const BlogPost = () => {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const dummyImages = [
     "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=250&fit=crop",
@@ -157,9 +155,25 @@ const BlogPost = () => {
   };
 
   const processContent = (content: string) => {
-    // Process code blocks with copy functionality
+    // Enhanced markdown processing
+    let processedContent = content
+      // Headers
+      .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-8 text-slate-900 dark:text-white">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mb-6 mt-10 text-slate-900 dark:text-white">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-8 mt-12 text-slate-900 dark:text-white">$1</h1>')
+      
+      // Bold and Italic
+      .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
+      .replace(/\*(.*?)\*/gim, '<em class="italic text-slate-700 dark:text-slate-300">$1</em>')
+      
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline">$1</a>')
+      
+      // Images
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg border border-slate-200 dark:border-slate-700" />');
+
+    // Process code blocks with enhanced styling and copy functionality
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    let processedContent = content;
     let codeBlockIndex = 0;
 
     processedContent = processedContent.replace(codeBlockRegex, (match, language, code) => {
@@ -167,12 +181,12 @@ const BlogPost = () => {
       const cleanCode = code.trim();
       
       return `
-        <div class="code-block-container relative bg-slate-900 dark:bg-slate-800 rounded-lg my-6 overflow-hidden">
-          <div class="flex items-center justify-between px-4 py-2 bg-slate-800 dark:bg-slate-700 border-b border-slate-700">
-            <span class="text-sm text-slate-300 font-mono">${language || 'code'}</span>
+        <div class="code-block-container relative rounded-lg my-6 overflow-hidden border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50">
+          <div class="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-300 capitalize">${language || 'code'}</span>
             <button 
               onclick="copyCode('${codeId}', this)"
-              class="copy-btn flex items-center gap-2 px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors"
+              class="copy-btn flex items-center gap-2 px-3 py-1.5 text-xs bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded transition-colors"
               data-code-id="${codeId}"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,10 +195,28 @@ const BlogPost = () => {
               Copy
             </button>
           </div>
-          <pre class="p-4 overflow-x-auto"><code id="${codeId}" class="text-sm font-mono text-slate-100 language-${language || 'text'}">${cleanCode}</code></pre>
+          <div class="p-4 overflow-x-auto bg-slate-50 dark:bg-slate-900">
+            <pre class="text-sm leading-relaxed"><code id="${codeId}" class="text-slate-800 dark:text-slate-200" style="font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;">${cleanCode}</code></pre>
+          </div>
         </div>
       `;
     });
+
+    // Process inline code
+    processedContent = processedContent.replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-600" style="font-family: \'JetBrains Mono\', \'Fira Code\', \'Courier New\', monospace;">$1</code>');
+
+    // Process lists
+    processedContent = processedContent.replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>');
+    processedContent = processedContent.replace(/^(\d+)\. (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$2</li>');
+    
+    // Wrap consecutive list items
+    processedContent = processedContent.replace(/(<li[^>]*>.*<\/li>)/gims, '<ul class="list-disc pl-6 mb-4 space-y-1">$1</ul>');
+    
+    // Process blockquotes
+    processedContent = processedContent.replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-6 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-r">$1</blockquote>');
+    
+    // Process line breaks
+    processedContent = processedContent.replace(/\n/gim, '<br />');
 
     return processedContent;
   };
@@ -203,15 +235,15 @@ const BlogPost = () => {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
             </svg>
-            Copied
+            Copied!
           `;
-          button.classList.add('bg-green-600');
+          button.classList.add('bg-green-600', 'text-white');
           
           toast.success("Code copied to clipboard!");
           
           setTimeout(() => {
             button.innerHTML = originalHTML;
-            button.classList.remove('bg-green-600');
+            button.classList.remove('bg-green-600', 'text-white');
           }, 2000);
         } catch (err) {
           toast.error("Failed to copy code");
