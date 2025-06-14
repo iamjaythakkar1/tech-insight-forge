@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { UserManagement } from "@/components/UserManagement";
+import { HeaderUserActions } from "@/components/HeaderUserActions";
 import { Menu, X, Home, BookOpen, FolderOpen, User, Mail } from "lucide-react";
 
 export const Navigation = () => {
@@ -57,7 +57,7 @@ export const Navigation = () => {
           {/* Right side items */}
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
-            <UserManagement />
+            <HeaderUserActions />
           </div>
 
           {/* Mobile menu button */}
@@ -93,7 +93,7 @@ export const Navigation = () => {
                 </Link>
               ))}
               <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                <UserManagement />
+                <HeaderUserActions />
               </div>
             </div>
           </div>

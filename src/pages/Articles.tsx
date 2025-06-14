@@ -21,6 +21,7 @@ interface BlogPost {
   created_at: string;
   read_time: number;
   view_count: number;
+  status?: 'draft' | 'published';
   categories: {
     name: string;
     color: string;
@@ -46,7 +47,7 @@ const Articles = () => {
   const [sortBy, setSortBy] = useState("latest");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [statusFilter, setStatusFilter] = useState(isAdminView ? "all" : "published");
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>(isAdminView ? "all" : "published");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
@@ -107,6 +108,8 @@ const Articles = () => {
       // Apply status filter based on view (admin can see all, public only sees published)
       if (statusFilter !== "all") {
         query = query.eq('status', statusFilter);
+      } else if (!isAdminView) {
+        query = query.eq('status', 'published');
       }
 
       // Apply search filter
@@ -142,10 +145,17 @@ const Articles = () => {
       }
 
       // Get total count for pagination
-      const { count } = await supabase
+      const countQuery = supabase
         .from('blogs')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', isAdminView ? statusFilter !== "all" ? statusFilter : 'published' : 'published');
+        .select('*', { count: 'exact', head: true });
+      
+      if (statusFilter !== "all") {
+        countQuery.eq('status', statusFilter);
+      } else if (!isAdminView) {
+        countQuery.eq('status', 'published');
+      }
+
+      const { count } = await countQuery;
 
       const totalCount = count || 0;
       setTotalPages(Math.ceil(totalCount / POSTS_PER_PAGE));
@@ -258,7 +268,7 @@ const Articles = () => {
               </Select>
 
               {isAdminView && (
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={(value: 'all' | 'published' | 'draft') => setStatusFilter(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
