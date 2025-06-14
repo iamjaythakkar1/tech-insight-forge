@@ -66,7 +66,6 @@ const Categories = () => {
 
       if (categoriesError) throw categoriesError;
 
-      // Get post counts for each category
       const categoriesWithCounts = await Promise.all(
         (categoriesData || []).map(async (category) => {
           const { count } = await supabase
@@ -79,7 +78,6 @@ const Categories = () => {
         })
       );
 
-      // Sort by post count descending
       categoriesWithCounts.sort((a, b) => (b.post_count || 0) - (a.post_count || 0));
       setCategories(categoriesWithCounts);
     } catch (error) {
@@ -91,7 +89,6 @@ const Categories = () => {
 
   const fetchCategoryPosts = async () => {
     try {
-      // First get the category
       const { data: categoryData, error: categoryError } = await supabase
         .from('categories')
         .select('*')
@@ -101,7 +98,6 @@ const Categories = () => {
       if (categoryError) throw categoryError;
       setSelectedCategory(categoryData);
 
-      // Then get posts for this category
       const { data: postsData, error: postsError } = await supabase
         .from('blogs')
         .select('*')
@@ -135,14 +131,12 @@ const Categories = () => {
     );
   }
 
-  // If viewing a specific category
   if (selectedCategory) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <Navigation />
         
         <div className="max-w-7xl mx-auto px-6 py-12">
-          {/* <Link to="/categories" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8 transition-colors"> */}
           <Link
             to="/categories"
             className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8 transition-colors"
@@ -154,8 +148,8 @@ const Categories = () => {
 
           <div className="text-center mb-12">
             <Badge 
-              className="mb-4 text-lg px-4 py-2"
-              style={{ backgroundColor: selectedCategory.color + '20', color: selectedCategory.color }}
+              className="mb-4 text-lg px-4 py-2 bg-blue-600 text-white"
+              style={{ backgroundColor: selectedCategory.color }}
             >
               {selectedCategory.name}
             </Badge>
@@ -173,7 +167,7 @@ const Categories = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {posts.map((post, index) => (
                 <Link key={post.id} to={`/blog/${post.slug}`} className="block">
-                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
+                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
                     <CardContent className="p-0">
                       <div className="relative">
                         <img 
@@ -182,16 +176,23 @@ const Categories = () => {
                           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                           loading="lazy"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div className="absolute top-4 left-4">
+                          <Badge 
+                            className="bg-blue-600 text-white"
+                            style={{ backgroundColor: selectedCategory.color }}
+                          >
+                            {selectedCategory.name}
+                          </Badge>
+                        </div>
                       </div>
                       
                       <div className="p-6">
-                        <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                        <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors text-white">
                           {post.title}
                         </h3>
                         
                         {post.excerpt && (
-                          <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
+                          <p className="text-slate-400 mb-4 line-clamp-3">
                             {post.excerpt}
                           </p>
                         )}
@@ -233,7 +234,6 @@ const Categories = () => {
     );
   }
 
-  // Categories listing page
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Navigation />
@@ -251,7 +251,7 @@ const Categories = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {categories.map((category, index) => (
             <Link key={category.id} to={`/category/${category.slug}`} className="block">
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
                 <CardContent className="p-0">
                   <div className="relative">
                     <img 
@@ -260,10 +260,10 @@ const Categories = () => {
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                     <div className="absolute top-4 right-4">
                       <Badge 
-                        style={{ backgroundColor: category.color + '20', color: category.color }}
+                        className="bg-blue-600 text-white"
+                        style={{ backgroundColor: category.color }}
                       >
                         <FolderOpen className="h-4 w-4 mr-1" />
                         {category.post_count || 0} articles
@@ -272,12 +272,12 @@ const Categories = () => {
                   </div>
                   
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-3 group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-xl font-bold mb-3 group-hover:text-blue-400 transition-colors text-white">
                       {category.name}
                     </h3>
                     
                     {category.description && (
-                      <p className="text-slate-600 dark:text-slate-300 line-clamp-3">
+                      <p className="text-slate-400 line-clamp-3">
                         {category.description}
                       </p>
                     )}

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { Calendar, User, Clock, ChevronRight, BookOpen, TrendingUp, Eye } from "lucide-react";
+import { Calendar, Clock, Eye, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface BlogPost {
@@ -26,15 +26,14 @@ interface BlogPost {
 interface Category {
   id: string;
   name: string;
-  slug: string;
   description: string;
   color: string;
-  blog_count: number;
+  slug: string;
+  post_count?: number;
 }
 
 const Index = () => {
-  const [featuredPosts, setFeaturedPosts] = useState<BlogPost[]>([]);
-  const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
+  const [recentPosts, setRecentPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,48 +43,15 @@ const Index = () => {
     "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=400&h=250&fit=crop",
     "https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400&h=250&fit=crop",
     "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=250&fit=crop",
-    "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=250&fit=crop",
-    "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=400&h=250&fit=crop",
-    "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=400&h=250&fit=crop",
-    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=250&fit=crop",
-    "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=250&fit=crop"
+    "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?w=400&h=250&fit=crop"
   ];
 
   useEffect(() => {
-    fetchFeaturedPosts();
-    fetchLatestPosts();
+    fetchRecentPosts();
     fetchCategories();
   }, []);
 
-  const fetchFeaturedPosts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('blogs')
-        .select(`
-          id,
-          title,
-          excerpt,
-          slug,
-          created_at,
-          read_time,
-          view_count,
-          categories (
-            name,
-            color
-          )
-        `)
-        .eq('status', 'published')
-        .order('view_count', { ascending: false })
-        .limit(3);
-
-      if (error) throw error;
-      setFeaturedPosts(data || []);
-    } catch (error) {
-      console.error('Error fetching featured posts:', error);
-    }
-  };
-
-  const fetchLatestPosts = async () => {
+  const fetchRecentPosts = async () => {
     try {
       const { data, error } = await supabase
         .from('blogs')
@@ -107,34 +73,35 @@ const Index = () => {
         .limit(6);
 
       if (error) throw error;
-      setLatestPosts(data || []);
+      setRecentPosts(data || []);
     } catch (error) {
-      console.error('Error fetching latest posts:', error);
+      console.error('Error fetching recent posts:', error);
     }
   };
 
   const fetchCategories = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: categoriesData, error: categoriesError } = await supabase
         .from('categories')
-        .select(`
-          id,
-          name,
-          slug,
-          description,
-          color,
-          blogs!blogs_category_id_fkey(id)
-        `)
-        .order('name');
+        .select('*')
+        .order('name')
+        .limit(6);
 
-      if (error) throw error;
+      if (categoriesError) throw categoriesError;
 
-      const categoriesWithCount = (data || []).map(category => ({
-        ...category,
-        blog_count: category.blogs ? category.blogs.length : 0
-      })).sort((a, b) => b.blog_count - a.blog_count);
+      const categoriesWithCounts = await Promise.all(
+        (categoriesData || []).map(async (category) => {
+          const { count } = await supabase
+            .from('blogs')
+            .select('*', { count: 'exact', head: true })
+            .eq('category_id', category.id)
+            .eq('status', 'published');
 
-      setCategories(categoriesWithCount);
+          return { ...category, post_count: count || 0 };
+        })
+      );
+
+      setCategories(categoriesWithCounts);
     } catch (error) {
       console.error('Error fetching categories:', error);
     } finally {
@@ -164,256 +131,146 @@ const Index = () => {
       <Navigation />
       
       {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 px-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            TechInsight Forge
-          </h1>
-          <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto">
-            Your ultimate destination for cutting-edge tech insights, programming tutorials, and engineering excellence.
-          </p>
+      <section className="max-w-7xl mx-auto px-6 py-16 text-center">
+        <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Tech Insights & Innovations
+        </h1>
+        <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto">
+          Explore cutting-edge technologies, best practices, and industry insights from our expert community.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link to="/articles">
-            <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 text-lg">
-              Start Reading
-              <ChevronRight className="ml-2 h-5 w-5" />
+            <Button size="lg" className="min-w-[200px]">
+              Explore Articles
+            </Button>
+          </Link>
+          <Link to="/categories">
+            <Button variant="outline" size="lg" className="min-w-[200px]">
+              Browse Categories
             </Button>
           </Link>
         </div>
       </section>
 
-      {/* Featured Posts */}
-      <section className="py-16 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-800 dark:text-white">
-              Featured Articles
-            </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-300">
-              Discover our most popular and trending content
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredPosts.map((post, index) => (
-              <Link key={post.id} to={`/blog/${post.slug}`} className="block">
-                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
-                  <CardContent className="p-0">
-                    <div className="relative">
-                      <img 
-                        src={dummyImages[index % dummyImages.length]} 
-                        alt={post.title}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                      <div className="absolute top-4 right-4">
-                        {post.categories && (
-                          <Badge 
-                            style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
-                          >
-                            {post.categories.name}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                        {post.title}
-                      </h3>
-                      
-                      {post.excerpt && (
-                        <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
-                          {post.excerpt}
-                        </p>
-                      )}
-                      
-                      <div className="flex items-center justify-between text-sm text-slate-500">
-                        <div className="flex items-center gap-4">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {formatDate(post.created_at)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {post.read_time} min
-                          </span>
-                        </div>
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" />
-                          {post.view_count || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+      {/* Recent Posts Section */}
+      <section className="max-w-7xl mx-auto px-6 py-16">
+        <div className="flex items-center justify-between mb-12">
+          <h2 className="text-3xl font-bold">Latest Articles</h2>
+          <Link to="/articles">
+            <Button variant="outline" className="group">
+              View All
+              <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </Link>
         </div>
-      </section>
-
-      {/* Latest Articles */}
-      <section className="py-16 px-6 bg-slate-50 dark:bg-slate-800/50">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-800 dark:text-white">
-                Latest Articles
-              </h2>
-              <p className="text-lg text-slate-600 dark:text-slate-300">
-                Stay updated with our newest content
-              </p>
-            </div>
-            <Link to="/articles">
-              <Button variant="outline" className="hidden md:flex">
-                View All Articles
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {latestPosts.map((post, index) => (
-              <Link key={post.id} to={`/blog/${post.slug}`} className="block">
-                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
-                  <CardContent className="p-0">
-                    <div className="relative">
-                      <img 
-                        src={dummyImages[(index + 3) % dummyImages.length]} 
-                        alt={post.title}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                      <div className="absolute top-4 right-4">
-                        {post.categories && (
-                          <Badge 
-                            style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
-                          >
-                            {post.categories.name}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                        {post.title}
-                      </h3>
-                      
-                      {post.excerpt && (
-                        <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
-                          {post.excerpt}
-                        </p>
-                      )}
-                      
-                      <div className="flex items-center justify-between text-sm text-slate-500">
-                        <div className="flex items-center gap-4">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {formatDate(post.created_at)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {post.read_time} min
-                          </span>
-                        </div>
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" />
-                          {post.view_count || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-          
-          <div className="text-center mt-8 md:hidden">
-            <Link to="/articles">
-              <Button>
-                View All Articles
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Browse Categories */}
-      <section className="py-16 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-800 dark:text-white">
-                Browse Categories
-              </h2>
-              <p className="text-lg text-slate-600 dark:text-slate-300">
-                Explore articles by topic and interest
-              </p>
-            </div>
-            <Link to="/categories">
-              <Button variant="outline" className="hidden md:flex">
-                View All Categories
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.slice(0, 6).map((category, index) => (
-              <Link key={category.id} to={`/category/${category.slug}`} className="block">
-                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
-                  <CardContent className="p-0">
-                    <div className="relative">
-                      <img 
-                        src={dummyImages[index % dummyImages.length]} 
-                        alt={category.name}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                      <div className="absolute bottom-4 left-4 right-4">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {recentPosts.map((post, index) => (
+            <Link key={post.id} to={`/blog/${post.slug}`} className="block group">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
+                <CardContent className="p-0">
+                  <div className="relative">
+                    <img 
+                      src={dummyImages[index % dummyImages.length]} 
+                      alt={post.title}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    {post.categories && (
+                      <div className="absolute top-4 left-4">
                         <Badge 
-                          className="mb-2"
-                          style={{ backgroundColor: category.color }}
+                          className="bg-blue-600 text-white"
+                          style={{ backgroundColor: post.categories.color }}
                         >
-                          {category.blog_count} {category.blog_count === 1 ? 'Article' : 'Articles'}
+                          {post.categories.name}
                         </Badge>
-                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-200 transition-colors">
-                          {category.name}
-                        </h3>
-                        {category.description && (
-                          <p className="text-slate-200 text-sm line-clamp-2">
-                            {category.description}
-                          </p>
-                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors text-white">
+                      {post.title}
+                    </h3>
+                    
+                    {post.excerpt && (
+                      <p className="text-slate-400 mb-4 line-clamp-3">
+                        {post.excerpt}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center justify-between text-sm text-slate-500">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(post.created_at)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {post.read_time} min
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Eye className="h-4 w-4" />
+                          {post.view_count || 0}
+                        </span>
                       </div>
                     </div>
-                    
-                    <div className="p-4">
-                      <span className="inline-flex items-center text-blue-600 hover:text-blue-800 transition-colors">
-                        <BookOpen className="mr-2 h-4 w-4" />
-                        Explore {category.name}
-                        <ChevronRight className="ml-1 h-4 w-4" />
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-          
-          <div className="text-center mt-8 md:hidden">
-            <Link to="/categories">
-              <Button>
-                View All Categories
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </Link>
-          </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Categories Section */}
+      <section className="max-w-7xl mx-auto px-6 py-16">
+        <div className="flex items-center justify-between mb-12">
+          <h2 className="text-3xl font-bold">Popular Categories</h2>
+          <Link to="/categories">
+            <Button variant="outline" className="group">
+              View All
+              <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </Link>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {categories.map((category, index) => (
+            <Link key={category.id} to={`/category/${category.slug}`} className="block group">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
+                <CardContent className="p-0">
+                  <div className="relative">
+                    <img 
+                      src={dummyImages[index % dummyImages.length]} 
+                      alt={category.name}
+                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <div className="absolute top-4 right-4">
+                      <Badge 
+                        className="bg-blue-600 text-white"
+                        style={{ backgroundColor: category.color }}
+                      >
+                        {category.post_count || 0} articles
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-blue-400 transition-colors text-white">
+                      {category.name}
+                    </h3>
+                    {category.description && (
+                      <p className="text-slate-400 text-sm line-clamp-2">
+                        {category.description}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
         </div>
       </section>
 

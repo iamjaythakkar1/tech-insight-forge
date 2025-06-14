@@ -106,7 +106,6 @@ export const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, placeho
 
   return (
     <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-      {/* Toolbar */}
       <div className="border-b border-slate-200 dark:border-slate-700 p-2 bg-slate-50 dark:bg-slate-800">
         <div className="flex flex-wrap gap-1">
           {toolbarButtons.map((button, index) => (
@@ -168,7 +167,6 @@ export const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, placeho
         </div>
       </div>
 
-      {/* Editor Content */}
       <div className="min-h-[400px]">
         {isPreview ? (
           <div 

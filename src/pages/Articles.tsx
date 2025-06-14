@@ -105,24 +105,20 @@ const Articles = () => {
           )
         `);
 
-      // Apply status filter based on view (admin can see all, public only sees published)
       if (statusFilter !== "all") {
         query = query.eq('status', statusFilter);
       } else if (!isAdminView) {
         query = query.eq('status', 'published');
       }
 
-      // Apply search filter
       if (searchTerm) {
         query = query.or(`title.ilike.%${searchTerm}%, excerpt.ilike.%${searchTerm}%`);
       }
 
-      // Apply category filter
       if (selectedCategory !== 'all') {
         query = query.eq('category_id', selectedCategory);
       }
 
-      // Apply date range filter
       if (dateFrom) {
         query = query.gte('created_at', dateFrom);
       }
@@ -130,7 +126,6 @@ const Articles = () => {
         query = query.lte('created_at', dateTo);
       }
 
-      // Apply sorting
       switch (sortBy) {
         case 'popularity':
           query = query.order('view_count', { ascending: false });
@@ -144,7 +139,6 @@ const Articles = () => {
           break;
       }
 
-      // Get total count for pagination
       const countQuery = supabase
         .from('blogs')
         .select('*', { count: 'exact', head: true });
@@ -160,7 +154,6 @@ const Articles = () => {
       const totalCount = count || 0;
       setTotalPages(Math.ceil(totalCount / POSTS_PER_PAGE));
 
-      // Apply pagination
       const from = (currentPage - 1) * POSTS_PER_PAGE;
       const to = from + POSTS_PER_PAGE - 1;
       query = query.range(from, to);
@@ -226,7 +219,6 @@ const Articles = () => {
           </p>
         </div>
 
-        {/* Filters and Search */}
         <Card className="mb-8">
           <CardContent className="p-6">
             <form onSubmit={handleSearch} className="mb-4">
@@ -304,7 +296,6 @@ const Articles = () => {
           </CardContent>
         </Card>
 
-        {/* Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           {posts.map((post, index) => (
             <Link 
@@ -312,7 +303,7 @@ const Articles = () => {
               to={isAdminView ? `/admin/edit/${post.id}` : `/blog/${post.slug}`}
               className="block group"
             >
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
                 <CardContent className="p-0">
                   <div className="relative">
                     <img 
@@ -321,8 +312,7 @@ const Articles = () => {
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                    <div className="absolute top-4 right-4 flex gap-2">
+                    <div className="absolute top-4 left-4 flex gap-2">
                       {isAdminView && post.status && (
                         <Badge variant={post.status === 'published' ? 'default' : 'secondary'}>
                           {post.status}
@@ -330,7 +320,8 @@ const Articles = () => {
                       )}
                       {post.categories && (
                         <Badge 
-                          style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
+                          className="bg-blue-600 text-white"
+                          style={{ backgroundColor: post.categories.color }}
                         >
                           {post.categories.name}
                         </Badge>
@@ -339,12 +330,12 @@ const Articles = () => {
                   </div>
                   
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors text-white">
                       {post.title}
                     </h3>
                     
                     {post.excerpt && (
-                      <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
+                      <p className="text-slate-400 mb-4 line-clamp-3">
                         {post.excerpt}
                       </p>
                     )}
@@ -372,7 +363,6 @@ const Articles = () => {
           ))}
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-4">
             <Button

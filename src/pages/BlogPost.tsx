@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
@@ -5,7 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Clock, Eye, ArrowLeft, Copy, Check } from "lucide-react";
+import { Calendar, Clock, Eye, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -96,7 +97,6 @@ const BlogPost = () => {
 
       setPost(data);
       
-      // Increment view count
       if (data?.id) {
         await supabase.rpc('increment_view_count', { post_id: data.id });
       }
@@ -143,19 +143,16 @@ const BlogPost = () => {
     }
   };
 
-  const copyToClipboard = async (text: string, codeId: string) => {
+  const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedCode(codeId);
       toast.success("Code copied to clipboard!");
-      setTimeout(() => setCopiedCode(null), 2000);
     } catch (err) {
       toast.error("Failed to copy code");
     }
   };
 
   const processContent = (content: string) => {
-    // Enhanced markdown processing
     let processedContent = content
       // Headers
       .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-8 text-slate-900 dark:text-white">$1</h3>')
@@ -181,12 +178,12 @@ const BlogPost = () => {
       const cleanCode = code.trim();
       
       return `
-        <div class="code-block-container relative rounded-lg my-6 overflow-hidden border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50">
-          <div class="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-600">
-            <span class="text-sm font-medium text-slate-700 dark:text-slate-300 capitalize">${language || 'code'}</span>
+        <div class="code-block-container relative rounded-xl my-6 overflow-hidden border-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 shadow-lg">
+          <div class="flex items-center justify-between px-4 py-3 bg-slate-200 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
+            <span class="text-sm font-semibold text-slate-800 dark:text-slate-200 capitalize">${language || 'code'}</span>
             <button 
-              onclick="copyCode('${codeId}', this)"
-              class="copy-btn flex items-center gap-2 px-3 py-1.5 text-xs bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded transition-colors"
+              onclick="copyCodeBlock('${codeId}')"
+              class="copy-btn flex items-center gap-2 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors font-medium"
               data-code-id="${codeId}"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,7 +200,7 @@ const BlogPost = () => {
     });
 
     // Process inline code
-    processedContent = processedContent.replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-600" style="font-family: \'JetBrains Mono\', \'Fira Code\', \'Courier New\', monospace;">$1</code>');
+    processedContent = processedContent.replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded border border-slate-300 dark:border-slate-600" style="font-family: \'JetBrains Mono\', \'Fira Code\', \'Courier New\', monospace;">$1</code>');
 
     // Process lists
     processedContent = processedContent.replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>');
@@ -223,28 +220,12 @@ const BlogPost = () => {
 
   useEffect(() => {
     // Add global copy function
-    (window as any).copyCode = async (codeId: string, button: HTMLElement) => {
+    (window as any).copyCodeBlock = async (codeId: string) => {
       const codeElement = document.getElementById(codeId);
       if (codeElement) {
         try {
           await navigator.clipboard.writeText(codeElement.textContent || '');
-          
-          // Update button text temporarily
-          const originalHTML = button.innerHTML;
-          button.innerHTML = `
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Copied!
-          `;
-          button.classList.add('bg-green-600', 'text-white');
-          
           toast.success("Code copied to clipboard!");
-          
-          setTimeout(() => {
-            button.innerHTML = originalHTML;
-            button.classList.remove('bg-green-600', 'text-white');
-          }, 2000);
         } catch (err) {
           toast.error("Failed to copy code");
         }
@@ -297,13 +278,11 @@ const BlogPost = () => {
       <Navigation />
       
       <article className="max-w-4xl mx-auto px-6 py-12">
-        {/* Back Button */}
         <Link to="/articles" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-8 transition-colors">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Articles
         </Link>
 
-        {/* Featured Image */}
         <div className="relative mb-8 rounded-xl overflow-hidden">
           <img 
             src={dummyImages[0]}
@@ -313,7 +292,6 @@ const BlogPost = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
         </div>
 
-        {/* Article Header */}
         <header className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             {post.categories && (
@@ -352,7 +330,6 @@ const BlogPost = () => {
           </div>
         </header>
 
-        {/* Article Content */}
         <div 
           className="prose prose-slate dark:prose-invert max-w-none prose-lg
             prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white
@@ -367,14 +344,13 @@ const BlogPost = () => {
         />
       </article>
 
-      {/* Related Posts */}
       {relatedPosts.length > 0 && (
         <section className="max-w-7xl mx-auto px-6 py-12 border-t border-slate-200 dark:border-slate-700">
           <h2 className="text-2xl font-bold mb-8 text-center">Related Articles</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {relatedPosts.map((relatedPost, index) => (
               <Link key={relatedPost.id} to={`/blog/${relatedPost.slug}`} className="block group">
-                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full">
+                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
                   <CardContent className="p-0">
                     <div className="relative">
                       <img 
@@ -382,21 +358,22 @@ const BlogPost = () => {
                         alt={relatedPost.title}
                         className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                      <Badge 
-                        className="absolute top-4 right-4"
-                        style={{ backgroundColor: relatedPost.categories.color + '20', color: relatedPost.categories.color }}
-                      >
-                        {relatedPost.categories.name}
-                      </Badge>
+                      <div className="absolute top-4 left-4">
+                        <Badge 
+                          className="bg-blue-600 text-white"
+                          style={{ backgroundColor: relatedPost.categories.color }}
+                        >
+                          {relatedPost.categories.name}
+                        </Badge>
+                      </div>
                     </div>
                     
                     <div className="p-6">
-                      <h3 className="text-lg font-bold mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-lg font-bold mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors text-white">
                         {relatedPost.title}
                       </h3>
                       
-                      <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3 text-sm">
+                      <p className="text-slate-400 mb-4 line-clamp-3 text-sm">
                         {relatedPost.excerpt}
                       </p>
                       
