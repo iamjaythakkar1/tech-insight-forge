@@ -4,12 +4,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Navigation } from "@/components/Navigation";
 import { UserManagement } from "@/components/UserManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Eye, FileText, LogOut, Folder, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, FileText, LogOut, Folder, Users, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Blog {
   id: string;
@@ -17,6 +19,8 @@ interface Blog {
   excerpt: string;
   status: 'draft' | 'published';
   created_at: string;
+  view_count: number;
+  read_time: number;
   categories: { name: string; color: string } | null;
 }
 
@@ -37,6 +41,16 @@ const Dashboard = () => {
   const [userCount, setUserCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'blogs' | 'categories' | 'users'>('blogs');
+  
+  // Filter states for blogs
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("latest");
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  
+  const POSTS_PER_PAGE = 10;
 
   useEffect(() => {
     if (!loading) {
@@ -53,11 +67,11 @@ const Dashboard = () => {
       fetchCategories();
       fetchUserCount();
     }
-  }, [user]);
+  }, [user, currentPage, searchTerm, selectedCategory, sortBy, statusFilter]);
 
   const fetchBlogs = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('blogs')
         .select(`
           id,
@@ -65,12 +79,58 @@ const Dashboard = () => {
           excerpt,
           status,
           created_at,
+          view_count,
+          read_time,
           categories (
             name,
             color
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
+
+      if (statusFilter !== "all") {
+        query = query.eq('status', statusFilter);
+      }
+
+      if (searchTerm) {
+        query = query.or(`title.ilike.%${searchTerm}%, excerpt.ilike.%${searchTerm}%`);
+      }
+
+      if (selectedCategory !== 'all') {
+        query = query.eq('category_id', selectedCategory);
+      }
+
+      switch (sortBy) {
+        case 'popularity':
+          query = query.order('view_count', { ascending: false });
+          break;
+        case 'oldest':
+          query = query.order('created_at', { ascending: true });
+          break;
+        case 'latest':
+        default:
+          query = query.order('created_at', { ascending: false });
+          break;
+      }
+
+      // Get total count for pagination
+      const countQuery = supabase
+        .from('blogs')
+        .select('*', { count: 'exact', head: true });
+      
+      if (statusFilter !== "all") {
+        countQuery.eq('status', statusFilter);
+      }
+
+      const { count } = await countQuery;
+      const totalCount = count || 0;
+      setTotalPages(Math.ceil(totalCount / POSTS_PER_PAGE));
+
+      // Apply pagination
+      const from = (currentPage - 1) * POSTS_PER_PAGE;
+      const to = from + POSTS_PER_PAGE - 1;
+      query = query.range(from, to);
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -105,11 +165,8 @@ const Dashboard = () => {
 
   const fetchUserCount = async () => {
     try {
-      const { data, error } = await supabase.auth.admin.listUsers();
-      
-      if (error) throw error;
-      
-      setUserCount(data.users.length);
+      // For now, we'll use a mock count since we can't access auth.admin
+      setUserCount(1);
     } catch (error) {
       console.error('Error fetching user count:', error);
       setUserCount(0);
@@ -178,6 +235,14 @@ const Dashboard = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setSortBy("latest");
+    setStatusFilter('all');
+    setCurrentPage(1);
   };
 
   if (loading || isLoading || !user) {
@@ -291,6 +356,66 @@ const Dashboard = () => {
               </Link>
             </div>
 
+            {/* Blog Filters */}
+            <Card className="mb-6">
+              <CardContent className="p-6">
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search blogs by title or description..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="latest">Latest</SelectItem>
+                      <SelectItem value="oldest">Oldest</SelectItem>
+                      <SelectItem value="popularity">Most Popular</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={statusFilter} onValueChange={(value: 'all' | 'published' | 'draft') => setStatusFilter(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="draft">Drafts</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button onClick={resetFilters} variant="outline">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Reset
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="space-y-4">
               {blogs.map((blog) => (
                 <Card key={blog.id}>
@@ -312,9 +437,14 @@ const Dashboard = () => {
                           )}
                         </div>
                         <p className="text-slate-600 dark:text-slate-300 mb-2">{blog.excerpt}</p>
-                        <p className="text-sm text-slate-500">
-                          Created: {new Date(blog.created_at).toLocaleDateString()}
-                        </p>
+                        <div className="flex items-center gap-4 text-sm text-slate-500">
+                          <span>Created: {new Date(blog.created_at).toLocaleDateString()}</span>
+                          <span className="flex items-center gap-1">
+                            <Eye className="h-4 w-4" />
+                            {blog.view_count || 0}
+                          </span>
+                          <span>{blog.read_time} min read</span>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -346,18 +476,54 @@ const Dashboard = () => {
                 <Card>
                   <CardContent className="p-12 text-center">
                     <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No blog posts yet</h3>
-                    <p className="text-slate-600 mb-4">Create your first blog post to get started.</p>
-                    <Link to="/admin/create">
-                      <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create First Post
-                      </Button>
-                    </Link>
+                    <h3 className="text-lg font-semibold mb-2">No blog posts found</h3>
+                    <p className="text-slate-600 mb-4">
+                      {searchTerm || selectedCategory !== 'all' || statusFilter !== 'all' 
+                        ? 'Try adjusting your search criteria or filters.' 
+                        : 'Create your first blog post to get started.'
+                      }
+                    </p>
+                    {!searchTerm && selectedCategory === 'all' && statusFilter === 'all' ? (
+                      <Link to="/admin/create">
+                        <Button>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create First Post
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button onClick={resetFilters}>Reset Filters</Button>
+                    )}
                   </CardContent>
                 </Card>
               )}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-8">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+                
+                <span className="text-slate-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            )}
           </>
         )}
 

@@ -139,10 +139,22 @@ const AdminCreatePost = () => {
     setLoading(true);
     
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to save posts",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const postData = {
         ...formData,
         status,
-        author_id: '00000000-0000-0000-0000-000000000000' // Placeholder for now
+        author_id: user.id
       };
 
       let result;
@@ -169,7 +181,7 @@ const AdminCreatePost = () => {
       console.error('Error saving post:', error);
       toast({
         title: "Error",
-        description: "Failed to save post",
+        description: "Failed to save post. Please try again.",
         variant: "destructive",
       });
     } finally {

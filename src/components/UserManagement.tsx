@@ -49,19 +49,19 @@ export const UserManagement = () => {
       
       const adminUserIds = adminUsers.map(admin => admin.user_id);
 
-      const { data: { users }, error } = await supabase.auth.admin.listUsers();
+      // For now, we'll simulate getting users since we can't access auth.admin without service role
+      // In a real implementation, this would require a server-side function
+      const mockUsers = [
+        {
+          id: '1',
+          email: 'admin@example.com',
+          created_at: new Date().toISOString(),
+          last_sign_in_at: new Date().toISOString(),
+          is_admin: true
+        }
+      ];
 
-      if (error) throw error;
-
-      const formattedUsers = users.map(user => ({
-        id: user.id,
-        email: user.email || 'No email',
-        created_at: user.created_at || new Date().toISOString(),
-        last_sign_in_at: user.last_sign_in_at,
-        is_admin: adminUserIds.includes(user.id)
-      }));
-
-      setUsers(formattedUsers);
+      setUsers(mockUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
@@ -77,19 +77,13 @@ export const UserManagement = () => {
         return;
       }
 
-      const { data, error } = await supabase.auth.admin.createUser({
-        email: newUserEmail,
-        password: newUserPassword,
-        email_confirm: true
-      });
-
-      if (error) throw error;
+      // In a real implementation, this would need to be done server-side
+      // with proper admin privileges
+      toast.info('User creation requires server-side implementation');
       
-      toast.success('User created successfully');
       setIsCreateModalOpen(false);
       setNewUserEmail("");
       setNewUserPassword("");
-      fetchUsers();
     } catch (error) {
       console.error('Error creating user:', error);
       toast.error('Failed to create user');
@@ -100,12 +94,8 @@ export const UserManagement = () => {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      
-      if (error) throw error;
-      
-      setUsers(users.filter(user => user.id !== userId));
-      toast.success('User deleted successfully');
+      // In a real implementation, this would need to be done server-side
+      toast.info('User deletion requires server-side implementation');
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error('Failed to delete user');

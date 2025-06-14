@@ -1,14 +1,14 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Clock, Eye, ArrowLeft } from "lucide-react";
+import { Navigation } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { Calendar, Clock, Eye, ArrowLeft, Share2, Copy, Check } from "lucide-react";
 
 interface BlogPost {
   id: string;
@@ -20,7 +20,6 @@ interface BlogPost {
   read_time: number;
   view_count: number;
   categories: {
-    id: string;
     name: string;
     color: string;
   } | null;
@@ -29,20 +28,18 @@ interface BlogPost {
 interface RelatedPost {
   id: string;
   title: string;
-  excerpt: string;
   slug: string;
-  created_at: string;
+  excerpt: string;
   read_time: number;
-  view_count: number;
   categories: {
-    id: string;
     name: string;
     color: string;
-  };
+  } | null;
 }
 
 const BlogPost = () => {
   const { slug } = useParams();
+  const { toast } = useToast();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,8 +48,6 @@ const BlogPost = () => {
     "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=250&fit=crop",
     "https://images.unsplash.com/photo-1484417894907-623942c8ee29?w=400&h=250&fit=crop",
     "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=400&h=250&fit=crop",
-    "https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400&h=250&fit=crop",
-    "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=250&fit=crop"
   ];
 
   useEffect(() => {
@@ -60,12 +55,6 @@ const BlogPost = () => {
       fetchPost();
     }
   }, [slug]);
-
-  useEffect(() => {
-    if (post?.categories?.id) {
-      fetchRelatedPosts(post.categories.id, post.id);
-    }
-  }, [post]);
 
   const fetchPost = async () => {
     try {
@@ -81,7 +70,6 @@ const BlogPost = () => {
           read_time,
           view_count,
           categories (
-            id,
             name,
             color
           )
@@ -90,153 +78,192 @@ const BlogPost = () => {
         .eq('status', 'published')
         .single();
 
-      if (error) {
-        console.error('Error fetching post:', error);
-        return;
-      }
+      if (error) throw error;
 
-      setPost(data);
-      
-      if (data?.id) {
+      if (data) {
+        setPost(data);
+        
+        // Increment view count
         await supabase.rpc('increment_view_count', { post_id: data.id });
+        
+        // Fetch related posts
+        if (data.categories) {
+          fetchRelatedPosts(data.id);
+        }
       }
     } catch (error) {
-      console.error('Error in fetchPost:', error);
+      console.error('Error fetching post:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchRelatedPosts = async (categoryId: string, currentPostId: string) => {
+  const fetchRelatedPosts = async (currentPostId: string) => {
     try {
       const { data, error } = await supabase
         .from('blogs')
         .select(`
           id,
           title,
-          excerpt,
           slug,
-          created_at,
+          excerpt,
           read_time,
-          view_count,
           categories (
-            id,
             name,
             color
           )
         `)
-        .eq('category_id', categoryId)
         .eq('status', 'published')
         .neq('id', currentPostId)
         .limit(3);
 
       if (error) throw error;
-      
-      const typedData = data?.map(item => ({
-        ...item,
-        categories: item.categories as { id: string; name: string; color: string; }
-      })) || [];
-      
-      setRelatedPosts(typedData);
+      setRelatedPosts(data || []);
     } catch (error) {
       console.error('Error fetching related posts:', error);
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Code copied to clipboard!");
-    } catch (err) {
-      toast.error("Failed to copy code");
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const sharePost = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post?.title,
+          text: post?.excerpt,
+          url: window.location.href,
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+    } else {
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast({
+          title: "Link copied!",
+          description: "Post link has been copied to clipboard",
+        });
+      } catch (error) {
+        console.error('Error copying to clipboard:', error);
+      }
     }
   };
 
-  const processContent = (content: string) => {
-    let processedContent = content
+  const formatContentForDisplay = (content: string) => {
+    // Enhanced content processing with better code block styling and copy functionality
+    let html = content
       // Headers
-      .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-8 text-slate-900 dark:text-white">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mb-6 mt-10 text-slate-900 dark:text-white">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-8 mt-12 text-slate-900 dark:text-white">$1</h1>')
+      .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-6 text-slate-800 dark:text-white">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mb-6 mt-8 text-slate-800 dark:text-white">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-8 mt-10 text-slate-800 dark:text-white">$1</h1>')
       
       // Bold and Italic
-      .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
-      .replace(/\*(.*?)\*/gim, '<em class="italic text-slate-700 dark:text-slate-300">$1</em>')
+      .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-bold text-slate-800 dark:text-white">$1</strong>')
+      .replace(/\*(.*?)\*/gim, '<em class="italic text-slate-700 dark:text-slate-200">$1</em>')
       
       // Links
       .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline">$1</a>')
       
       // Images
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg border border-slate-200 dark:border-slate-700" />');
-
-    // Process code blocks with enhanced styling and copy functionality
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    let codeBlockIndex = 0;
-
-    processedContent = processedContent.replace(codeBlockRegex, (match, language, code) => {
-      const codeId = `code-${codeBlockIndex++}`;
-      const cleanCode = code.trim();
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg border border-slate-200 dark:border-slate-700" />')
       
-      return `
-        <div class="code-block-container relative rounded-xl my-6 overflow-hidden border-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 shadow-lg">
-          <div class="flex items-center justify-between px-4 py-3 bg-slate-200 dark:bg-slate-700 border-b border-slate-300 dark:border-slate-600">
-            <span class="text-sm font-semibold text-slate-800 dark:text-slate-200 capitalize">${language || 'code'}</span>
+      // Enhanced Code blocks with copy functionality and improved styling
+      .replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
+        const languageLabel = lang || 'code';
+        const cleanCode = code.trim();
+        const codeId = Math.random().toString(36).substr(2, 9);
+        return `<div class="relative my-6 rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-lg">
+          <div class="flex items-center justify-between px-4 py-3 bg-slate-200 dark:bg-slate-700 border-b-2 border-slate-300 dark:border-slate-600">
+            <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 capitalize">${languageLabel}</span>
             <button 
-              onclick="copyCodeBlock('${codeId}')"
-              class="copy-btn flex items-center gap-2 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors font-medium"
-              data-code-id="${codeId}"
+              onclick="copyCodeToClipboard('${codeId}')"
+              class="copy-btn flex items-center px-3 py-1.5 text-xs font-medium bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-400 dark:hover:bg-slate-500 transition-all duration-200"
+              id="copy-btn-${codeId}"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+              <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path>
+                <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path>
               </svg>
               Copy
             </button>
           </div>
           <div class="p-4 overflow-x-auto bg-slate-50 dark:bg-slate-900">
-            <pre class="text-sm leading-relaxed"><code id="${codeId}" class="text-slate-800 dark:text-slate-200" style="font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;">${cleanCode}</code></pre>
+            <pre class="text-sm leading-relaxed"><code id="code-${codeId}" class="text-slate-800 dark:text-slate-200" style="font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; line-height: 1.6;">${cleanCode}</code></pre>
           </div>
-        </div>
-      `;
-    });
+        </div>`;
+      })
+      
+      // Inline code with better contrast
+      .replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded border border-slate-300 dark:border-slate-600" style="font-family: \'JetBrains Mono\', \'Fira Code\', \'Courier New\', monospace;">$1</code>')
+      
+      // Lists
+      .replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>')
+      .replace(/^(\d+)\. (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$2</li>')
+      
+      // Blockquotes
+      .replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-6 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-r">$1</blockquote>')
+      
+      // Line breaks
+      .replace(/\n/gim, '<br />');
 
-    // Process inline code
-    processedContent = processedContent.replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded border border-slate-300 dark:border-slate-600" style="font-family: \'JetBrains Mono\', \'Fira Code\', \'Courier New\', monospace;">$1</code>');
-
-    // Process lists
-    processedContent = processedContent.replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>');
-    processedContent = processedContent.replace(/^(\d+)\. (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$2</li>');
-    
     // Wrap consecutive list items
-    processedContent = processedContent.replace(/(<li[^>]*>.*<\/li>)/gims, '<ul class="list-disc pl-6 mb-4 space-y-1">$1</ul>');
+    html = html.replace(/(<li[^>]*>.*<\/li>)/gims, '<ul class="list-disc pl-6 mb-4 space-y-1">$1</ul>');
     
-    // Process blockquotes
-    processedContent = processedContent.replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-6 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-r">$1</blockquote>');
-    
-    // Process line breaks
-    processedContent = processedContent.replace(/\n/gim, '<br />');
-
-    return processedContent;
+    return html;
   };
 
+  // Add copy functionality as a global function
   useEffect(() => {
-    // Add global copy function
-    (window as any).copyCodeBlock = async (codeId: string) => {
-      const codeElement = document.getElementById(codeId);
-      if (codeElement) {
-        try {
+    (window as any).copyCodeToClipboard = async (codeId: string) => {
+      try {
+        const codeElement = document.getElementById(`code-${codeId}`);
+        const copyBtn = document.getElementById(`copy-btn-${codeId}`);
+        
+        if (codeElement && copyBtn) {
           await navigator.clipboard.writeText(codeElement.textContent || '');
-          toast.success("Code copied to clipboard!");
-        } catch (err) {
-          toast.error("Failed to copy code");
+          
+          const originalHTML = copyBtn.innerHTML;
+          copyBtn.innerHTML = `
+            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+            </svg>
+            Copied!
+          `;
+          copyBtn.classList.add('bg-green-200', 'dark:bg-green-700', 'text-green-800', 'dark:text-green-200');
+          
+          setTimeout(() => {
+            copyBtn.innerHTML = originalHTML;
+            copyBtn.classList.remove('bg-green-200', 'dark:bg-green-700', 'text-green-800', 'dark:text-green-200');
+          }, 2000);
+          
+          toast({
+            title: "Code copied!",
+            description: "Code has been copied to clipboard",
+          });
         }
+      } catch (error) {
+        console.error('Error copying code:', error);
+        toast({
+          title: "Copy failed",
+          description: "Failed to copy code to clipboard",
+          variant: "destructive",
+        });
       }
     };
-  }, []);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB');
-  };
+    return () => {
+      delete (window as any).copyCodeToClipboard;
+    };
+  }, [toast]);
 
   if (loading) {
     return (
@@ -256,9 +283,9 @@ const BlogPost = () => {
         <Navigation />
         <div className="max-w-4xl mx-auto px-6 py-12">
           <div className="text-center">
-            <h1 className="text-3xl font-bold mb-4">Post not found</h1>
+            <h1 className="text-3xl font-bold mb-4">Post Not Found</h1>
             <p className="text-slate-600 dark:text-slate-300 mb-8">
-              The blog post you're looking for doesn't exist.
+              The blog post you're looking for doesn't exist or has been removed.
             </p>
             <Link to="/articles">
               <Button>
@@ -277,128 +304,113 @@ const BlogPost = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Navigation />
       
-      <article className="max-w-4xl mx-auto px-6 py-12">
-        <Link to="/articles" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-8 transition-colors">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Articles
-        </Link>
-
-        <div className="relative mb-8 rounded-xl overflow-hidden">
-          <img 
-            src={dummyImages[0]}
-            alt={post.title}
-            className="w-full h-64 md:h-96 object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <div className="mb-8">
+          <Link to="/articles">
+            <Button variant="outline" className="mb-6">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Articles
+            </Button>
+          </Link>
         </div>
 
-        <header className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
+        <article>
+          <header className="mb-8">
             {post.categories && (
               <Badge 
+                className="mb-4"
                 style={{ backgroundColor: post.categories.color + '20', color: post.categories.color }}
-                className="text-sm"
               >
                 {post.categories.name}
               </Badge>
             )}
-          </div>
-          
-          <h1 className="text-3xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
-            {post.title}
-          </h1>
-          
-          {post.excerpt && (
-            <p className="text-xl text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-              {post.excerpt}
-            </p>
-          )}
-          
-          <div className="flex items-center gap-6 text-slate-500 dark:text-slate-400 text-sm">
-            <span className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              {formatDate(post.created_at)}
-            </span>
-            <span className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              {post.read_time} min read
-            </span>
-            <span className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              {post.view_count} views
-            </span>
-          </div>
-        </header>
+            
+            <h1 className="text-4xl md:text-5xl font-bold mb-6 text-slate-800 dark:text-white">
+              {post.title}
+            </h1>
+            
+            {post.excerpt && (
+              <p className="text-xl text-slate-600 dark:text-slate-300 mb-6">
+                {post.excerpt}
+              </p>
+            )}
+            
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-6 text-slate-500 text-sm">
+                <span className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  {formatDate(post.created_at)}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  {post.read_time} min read
+                </span>
+                <span className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  {post.view_count || 0} views
+                </span>
+              </div>
+              
+              <Button onClick={sharePost} variant="outline" size="sm">
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+            </div>
+          </header>
 
-        <div 
-          className="prose prose-slate dark:prose-invert max-w-none prose-lg
-            prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white
-            prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-p:leading-relaxed
-            prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-            prose-strong:text-slate-900 dark:prose-strong:text-white
-            prose-ul:text-slate-700 dark:prose-ul:text-slate-300
-            prose-ol:text-slate-700 dark:prose-ol:text-slate-300
-            prose-blockquote:border-blue-600 prose-blockquote:bg-blue-50 dark:prose-blockquote:bg-blue-900/20
-            prose-blockquote:text-slate-700 dark:prose-blockquote:text-slate-300"
-          dangerouslySetInnerHTML={{ __html: processContent(post.content) }}
-        />
-      </article>
-
-      {relatedPosts.length > 0 && (
-        <section className="max-w-7xl mx-auto px-6 py-12 border-t border-slate-200 dark:border-slate-700">
-          <h2 className="text-2xl font-bold mb-8 text-center">Related Articles</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {relatedPosts.map((relatedPost, index) => (
-              <Link key={relatedPost.id} to={`/blog/${relatedPost.slug}`} className="block group">
-                <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
-                  <CardContent className="p-0">
-                    <div className="relative">
-                      <img 
-                        src={dummyImages[(index + 1) % dummyImages.length]} 
-                        alt={relatedPost.title}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute top-4 left-4">
-                        <Badge 
-                          className="bg-blue-600 text-white"
-                          style={{ backgroundColor: relatedPost.categories.color }}
-                        >
-                          {relatedPost.categories.name}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="p-6">
-                      <h3 className="text-lg font-bold mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors text-white">
-                        {relatedPost.title}
-                      </h3>
-                      
-                      <p className="text-slate-400 mb-4 line-clamp-3 text-sm">
-                        {relatedPost.excerpt}
-                      </p>
-                      
-                      <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {formatDate(relatedPost.created_at)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {relatedPost.read_time} min
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          {relatedPost.view_count}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+          <div className="prose prose-lg max-w-none dark:prose-invert mb-12">
+            <div dangerouslySetInnerHTML={{ __html: formatContentForDisplay(post.content) }} />
           </div>
-        </section>
-      )}
+        </article>
+
+        {/* Related Posts */}
+        {relatedPosts.length > 0 && (
+          <section className="mt-16">
+            <h2 className="text-2xl font-bold mb-8">Related Articles</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedPosts.map((relatedPost, index) => (
+                <Link key={relatedPost.id} to={`/blog/${relatedPost.slug}`}>
+                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
+                    <CardContent className="p-0">
+                      <div className="relative">
+                        <img 
+                          src={dummyImages[index % dummyImages.length]} 
+                          alt={relatedPost.title}
+                          className="w-full h-32 object-cover"
+                          loading="lazy"
+                        />
+                        {relatedPost.categories && (
+                          <div className="absolute top-2 left-2">
+                            <Badge 
+                              className="text-xs"
+                              style={{ backgroundColor: relatedPost.categories.color }}
+                            >
+                              {relatedPost.categories.name}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="p-4">
+                        <h3 className="font-semibold mb-2 line-clamp-2 text-white">
+                          {relatedPost.title}
+                        </h3>
+                        <p className="text-slate-400 text-sm mb-3 line-clamp-2">
+                          {relatedPost.excerpt}
+                        </p>
+                        <div className="flex items-center text-xs text-slate-500">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {relatedPost.read_time} min read
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
 
       <Footer />
     </div>
