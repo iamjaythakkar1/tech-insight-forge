@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -29,6 +28,7 @@ interface Category {
   description: string;
   color: string;
   slug: string;
+  image_url?: string;
   post_count?: number;
 }
 
@@ -238,13 +238,13 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {categories.map((category, index) => (
             <Link key={category.id} to={`/category/${category.slug}`} className="block group">
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
                 <CardContent className="p-0">
                   <div className="relative">
                     <img 
-                      src={dummyImages[index % dummyImages.length]} 
+                      src={category.image_url || dummyImages[index % dummyImages.length]} 
                       alt={category.name}
-                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
                     />
                     <div className="absolute top-4 right-4">
@@ -257,12 +257,12 @@ const Index = () => {
                     </div>
                   </div>
                   
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-blue-400 transition-colors text-white">
+                  <div className="p-6 h-32 flex flex-col justify-center">
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-blue-400 transition-colors text-white text-center">
                       {category.name}
                     </h3>
                     {category.description && (
-                      <p className="text-slate-400 text-sm line-clamp-2">
+                      <p className="text-slate-400 text-sm line-clamp-2 text-center">
                         {category.description}
                       </p>
                     )}

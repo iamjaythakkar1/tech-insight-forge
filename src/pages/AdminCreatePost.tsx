@@ -28,6 +28,7 @@ interface BlogPost {
   category_id: string;
   read_time: number;
   status: 'draft' | 'published';
+  featured_image?: string;
 }
 
 const AdminCreatePost = () => {
@@ -45,7 +46,8 @@ const AdminCreatePost = () => {
     slug: "",
     category_id: "",
     read_time: 5,
-    status: 'draft'
+    status: 'draft',
+    featured_image: ""
   });
 
   useEffect(() => {
@@ -139,7 +141,6 @@ const AdminCreatePost = () => {
     setLoading(true);
     
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -190,24 +191,14 @@ const AdminCreatePost = () => {
   };
 
   const formatContentForPreview = (content: string) => {
-    // Enhanced content processing with improved code block styling
     let html = content
-      // Headers
       .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-6 text-slate-800 dark:text-white">$1</h3>')
       .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mb-6 mt-8 text-slate-800 dark:text-white">$1</h2>')
       .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-8 mt-10 text-slate-800 dark:text-white">$1</h1>')
-      
-      // Bold and Italic
       .replace(/\*\*(.*)\*\*/gim, '<strong class="font-bold text-slate-800 dark:text-white">$1</strong>')
       .replace(/\*(.*)\*/gim, '<em class="italic text-slate-700 dark:text-slate-200">$1</em>')
-      
-      // Links
       .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline">$1</a>')
-      
-      // Images
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg border border-slate-200 dark:border-slate-700" />')
-      
-      // Enhanced Code blocks with copy functionality and improved styling
       .replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
         const languageLabel = lang || 'code';
         const cleanCode = code.trim();
@@ -243,21 +234,12 @@ const AdminCreatePost = () => {
           </div>
         </div>`;
       })
-      
-      // Inline code with better contrast
       .replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded border border-slate-200 dark:border-slate-600" style="font-family: \'JetBrains Mono\', \'Fira Code\', \'Courier New\', monospace;">$1</code>')
-      
-      // Lists
       .replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>')
       .replace(/^(\d+)\. (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$2</li>')
-      
-      // Blockquotes
       .replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-6 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-r">$1</blockquote>')
-      
-      // Line breaks
       .replace(/\n/gim, '<br />');
 
-    // Wrap consecutive list items
     html = html.replace(/(<li[^>]*>.*<\/li>)/gims, '<ul class="list-disc pl-6 mb-4 space-y-1">$1</ul>');
     
     return html;
@@ -294,6 +276,16 @@ const AdminCreatePost = () => {
           </div>
 
           <article>
+            {formData.featured_image && (
+              <div className="mb-8">
+                <img 
+                  src={formData.featured_image} 
+                  alt={formData.title}
+                  className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg"
+                />
+              </div>
+            )}
+            
             <header className="mb-8">
               {selectedCategory && (
                 <Badge 
@@ -394,6 +386,16 @@ const AdminCreatePost = () => {
                   value={formData.excerpt}
                   onChange={(e) => handleInputChange('excerpt', e.target.value)}
                   placeholder="Brief description of the post..."
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="featured_image">Featured Image URL</Label>
+                <Input
+                  id="featured_image"
+                  value={formData.featured_image}
+                  onChange={(e) => handleInputChange('featured_image', e.target.value)}
+                  placeholder="https://example.com/image.jpg"
                 />
               </div>
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ interface BlogPost {
   created_at: string;
   read_time: number;
   view_count: number;
+  featured_image?: string;
   categories: {
     name: string;
     color: string;
@@ -69,6 +69,7 @@ const BlogPost = () => {
           created_at,
           read_time,
           view_count,
+          featured_image,
           categories (
             name,
             color
@@ -83,10 +84,8 @@ const BlogPost = () => {
       if (data) {
         setPost(data);
         
-        // Increment view count
         await supabase.rpc('increment_view_count', { post_id: data.id });
         
-        // Fetch related posts
         if (data.categories) {
           fetchRelatedPosts(data.id);
         }
@@ -145,7 +144,6 @@ const BlogPost = () => {
         console.log('Error sharing:', error);
       }
     } else {
-      // Fallback to clipboard
       try {
         await navigator.clipboard.writeText(window.location.href);
         toast({
@@ -159,24 +157,14 @@ const BlogPost = () => {
   };
 
   const formatContentForDisplay = (content: string) => {
-    // Enhanced content processing with better code block styling and copy functionality
     let html = content
-      // Headers
       .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-6 text-slate-800 dark:text-white">$1</h3>')
       .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mb-6 mt-8 text-slate-800 dark:text-white">$1</h2>')
       .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-8 mt-10 text-slate-800 dark:text-white">$1</h1>')
-      
-      // Bold and Italic
       .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-bold text-slate-800 dark:text-white">$1</strong>')
       .replace(/\*(.*?)\*/gim, '<em class="italic text-slate-700 dark:text-slate-200">$1</em>')
-      
-      // Links
       .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline">$1</a>')
-      
-      // Images
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg border border-slate-200 dark:border-slate-700" />')
-      
-      // Enhanced Code blocks with copy functionality and improved styling
       .replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
         const languageLabel = lang || 'code';
         const cleanCode = code.trim();
@@ -201,27 +189,17 @@ const BlogPost = () => {
           </div>
         </div>`;
       })
-      
-      // Inline code with better contrast
       .replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded border border-slate-300 dark:border-slate-600" style="font-family: \'JetBrains Mono\', \'Fira Code\', \'Courier New\', monospace;">$1</code>')
-      
-      // Lists
       .replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>')
       .replace(/^(\d+)\. (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$2</li>')
-      
-      // Blockquotes
       .replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-6 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-r">$1</blockquote>')
-      
-      // Line breaks
       .replace(/\n/gim, '<br />');
 
-    // Wrap consecutive list items
     html = html.replace(/(<li[^>]*>.*<\/li>)/gims, '<ul class="list-disc pl-6 mb-4 space-y-1">$1</ul>');
     
     return html;
   };
 
-  // Add copy functionality as a global function
   useEffect(() => {
     (window as any).copyCodeToClipboard = async (codeId: string) => {
       try {
@@ -315,6 +293,16 @@ const BlogPost = () => {
         </div>
 
         <article>
+          {post.featured_image && (
+            <div className="mb-8">
+              <img 
+                src={post.featured_image} 
+                alt={post.title}
+                className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg"
+              />
+            </div>
+          )}
+
           <header className="mb-8">
             {post.categories && (
               <Badge 

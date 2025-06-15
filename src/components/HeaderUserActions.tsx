@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { User, LogOut, Settings } from "lucide-react";
+import { User, LogOut, Settings, LayoutDashboard } from "lucide-react";
 
 export const HeaderUserActions = () => {
   const { user, signOut, isAdmin } = useAuth();
@@ -39,7 +39,7 @@ export const HeaderUserActions = () => {
         {isAdmin && (
           <DropdownMenuItem asChild>
             <Link to="/dashboard">
-              <Settings className="mr-2 h-4 w-4" />
+              <LayoutDashboard className="mr-2 h-4 w-4" />
               <span>Dashboard</span>
             </Link>
           </DropdownMenuItem>
