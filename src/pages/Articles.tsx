@@ -22,6 +22,7 @@ interface BlogPost {
   read_time: number;
   view_count: number;
   status?: 'draft' | 'published';
+  featured_image?: string;
   categories: {
     name: string;
     color: string;
@@ -99,6 +100,7 @@ const Articles = () => {
           read_time,
           view_count,
           status,
+          featured_image,
           categories (
             name,
             color
@@ -307,7 +309,7 @@ const Articles = () => {
                 <CardContent className="p-0">
                   <div className="relative">
                     <img 
-                      src={dummyImages[index % dummyImages.length]} 
+                      src={post.featured_image || dummyImages[index % dummyImages.length]} 
                       alt={post.title}
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"

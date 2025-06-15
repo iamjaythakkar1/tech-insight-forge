@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ interface BlogPost {
   created_at: string;
   read_time: number;
   view_count: number;
+  featured_image?: string;
   categories: {
     name: string;
     color: string;
@@ -63,6 +65,7 @@ const Index = () => {
           created_at,
           read_time,
           view_count,
+          featured_image,
           categories (
             name,
             color
@@ -171,7 +174,7 @@ const Index = () => {
                 <CardContent className="p-0">
                   <div className="relative">
                     <img 
-                      src={dummyImages[index % dummyImages.length]} 
+                      src={post.featured_image || dummyImages[index % dummyImages.length]} 
                       alt={post.title}
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"

@@ -293,16 +293,6 @@ const BlogPost = () => {
         </div>
 
         <article>
-          {post.featured_image && (
-            <div className="mb-8">
-              <img 
-                src={post.featured_image} 
-                alt={post.title}
-                className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg"
-              />
-            </div>
-          )}
-
           <header className="mb-8">
             {post.categories && (
               <Badge 
@@ -345,6 +335,15 @@ const BlogPost = () => {
               </Button>
             </div>
           </header>
+
+          {/* Featured Image Section */}
+          <div className="mb-8">
+            <img 
+              src={post.featured_image || dummyImages[0]} 
+              alt={post.title}
+              className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg"
+            />
+          </div>
 
           <div className="prose prose-lg max-w-none dark:prose-invert mb-12">
             <div dangerouslySetInnerHTML={{ __html: formatContentForDisplay(post.content) }} />
