@@ -139,7 +139,7 @@ const Categories = () => {
         <div className="max-w-7xl mx-auto px-6 py-12">
           <Link
             to="/categories"
-            className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8 transition-colors"
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 mb-8 transition-colors"
             onClick={() => setSelectedCategory(null)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -148,7 +148,7 @@ const Categories = () => {
 
           <div className="text-center mb-12">
             <Badge 
-              className="mb-4 text-lg px-4 py-2 bg-blue-600 text-white"
+              className="mb-4 text-lg px-4 py-2 text-white font-medium"
               style={{ backgroundColor: selectedCategory.color }}
             >
               {selectedCategory.name}
@@ -167,7 +167,7 @@ const Categories = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {posts.map((post, index) => (
                 <Link key={post.id} to={`/blog/${post.slug}`} className="block">
-                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
+                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600">
                     <CardContent className="p-0">
                       <div className="relative">
                         <img 
@@ -178,7 +178,7 @@ const Categories = () => {
                         />
                         <div className="absolute top-4 left-4">
                           <Badge 
-                            className="bg-blue-600 text-white"
+                            className="text-white font-medium"
                             style={{ backgroundColor: selectedCategory.color }}
                           >
                             {selectedCategory.name}
@@ -187,17 +187,17 @@ const Categories = () => {
                       </div>
                       
                       <div className="p-6">
-                        <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors text-white">
+                        <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-slate-900 dark:text-white">
                           {post.title}
                         </h3>
                         
                         {post.excerpt && (
-                          <p className="text-slate-400 mb-4 line-clamp-3">
+                          <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
                             {post.excerpt}
                           </p>
                         )}
                         
-                        <div className="flex items-center justify-between text-sm text-slate-500">
+                        <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
                           <div className="flex items-center gap-4">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-4 w-4" />
@@ -221,7 +221,7 @@ const Categories = () => {
             </div>
           ) : (
             <div className="text-center py-12">
-              <h3 className="text-xl font-semibold mb-2">No articles found</h3>
+              <h3 className="text-xl font-semibold mb-2 text-slate-900 dark:text-white">No articles found</h3>
               <p className="text-slate-600 dark:text-slate-300">
                 There are no published articles in this category yet.
               </p>
@@ -251,18 +251,20 @@ const Categories = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {categories.map((category, index) => (
             <Link key={category.id} to={`/category/${category.slug}`} className="block">
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600">
                 <CardContent className="p-0">
                   <div className="relative">
-                    <img 
-                      src={category.image_url || dummyImages[index % dummyImages.length]} 
-                      alt={category.name}
-                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
+                    <div className="w-full h-64 overflow-hidden">
+                      <img 
+                        src={category.image_url || dummyImages[index % dummyImages.length]} 
+                        alt={category.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    </div>
                     <div className="absolute top-4 right-4">
                       <Badge 
-                        className="bg-blue-600 text-white"
+                        className="text-white font-medium"
                         style={{ backgroundColor: category.color }}
                       >
                         <FolderOpen className="h-4 w-4 mr-1" />
@@ -272,12 +274,12 @@ const Categories = () => {
                   </div>
                   
                   <div className="p-6 h-32 flex flex-col justify-center">
-                    <h3 className="text-xl font-bold mb-3 group-hover:text-blue-400 transition-colors text-white text-center">
+                    <h3 className="text-xl font-bold mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-slate-900 dark:text-white text-center">
                       {category.name}
                     </h3>
                     
                     {category.description && (
-                      <p className="text-slate-400 line-clamp-3 text-center">
+                      <p className="text-slate-600 dark:text-slate-300 line-clamp-3 text-center">
                         {category.description}
                       </p>
                     )}
@@ -290,7 +292,7 @@ const Categories = () => {
 
         {categories.length === 0 && (
           <div className="text-center py-12">
-            <h3 className="text-xl font-semibold mb-2">No categories found</h3>
+            <h3 className="text-xl font-semibold mb-2 text-slate-900 dark:text-white">No categories found</h3>
             <p className="text-slate-600 dark:text-slate-300">
               Categories will appear here once they are created.
             </p>

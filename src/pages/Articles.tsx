@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -221,7 +220,7 @@ const Articles = () => {
           </p>
         </div>
 
-        <Card className="mb-8">
+        <Card className="mb-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
           <CardContent className="p-6">
             <form onSubmit={handleSearch} className="mb-4">
               <div className="relative">
@@ -305,7 +304,7 @@ const Articles = () => {
               to={isAdminView ? `/admin/edit/${post.id}` : `/blog/${post.slug}`}
               className="block group"
             >
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600">
                 <CardContent className="p-0">
                   <div className="relative">
                     <img 
@@ -322,7 +321,7 @@ const Articles = () => {
                       )}
                       {post.categories && (
                         <Badge 
-                          className="bg-blue-600 text-white"
+                          className="text-white font-medium"
                           style={{ backgroundColor: post.categories.color }}
                         >
                           {post.categories.name}
@@ -332,17 +331,17 @@ const Articles = () => {
                   </div>
                   
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors text-white">
+                    <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-slate-900 dark:text-white">
                       {post.title}
                     </h3>
                     
                     {post.excerpt && (
-                      <p className="text-slate-400 mb-4 line-clamp-3">
+                      <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
                         {post.excerpt}
                       </p>
                     )}
                     
-                    <div className="flex items-center justify-between text-sm text-slate-500">
+                    <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
                       <div className="flex items-center gap-4">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />

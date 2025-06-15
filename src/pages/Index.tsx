@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -158,7 +157,7 @@ const Index = () => {
       {/* Recent Posts Section */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="flex items-center justify-between mb-12">
-          <h2 className="text-3xl font-bold">Latest Articles</h2>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Latest Articles</h2>
           <Link to="/articles">
             <Button variant="outline" className="group">
               View All
@@ -170,7 +169,7 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recentPosts.map((post, index) => (
             <Link key={post.id} to={`/blog/${post.slug}`} className="block group">
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600">
                 <CardContent className="p-0">
                   <div className="relative">
                     <img 
@@ -182,7 +181,7 @@ const Index = () => {
                     {post.categories && (
                       <div className="absolute top-4 left-4">
                         <Badge 
-                          className="bg-blue-600 text-white"
+                          className="text-white font-medium"
                           style={{ backgroundColor: post.categories.color }}
                         >
                           {post.categories.name}
@@ -192,17 +191,17 @@ const Index = () => {
                   </div>
                   
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-400 transition-colors text-white">
+                    <h3 className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-slate-900 dark:text-white">
                       {post.title}
                     </h3>
                     
                     {post.excerpt && (
-                      <p className="text-slate-400 mb-4 line-clamp-3">
+                      <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-3">
                         {post.excerpt}
                       </p>
                     )}
                     
-                    <div className="flex items-center justify-between text-sm text-slate-500">
+                    <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
                       <div className="flex items-center gap-4">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
@@ -229,7 +228,7 @@ const Index = () => {
       {/* Categories Section */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="flex items-center justify-between mb-12">
-          <h2 className="text-3xl font-bold">Popular Categories</h2>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Popular Categories</h2>
           <Link to="/categories">
             <Button variant="outline" className="group">
               View All
@@ -241,18 +240,20 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {categories.map((category, index) => (
             <Link key={category.id} to={`/category/${category.slug}`} className="block group">
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-slate-800 dark:bg-slate-900 border border-slate-700 dark:border-slate-600">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600">
                 <CardContent className="p-0">
                   <div className="relative">
-                    <img 
-                      src={category.image_url || dummyImages[index % dummyImages.length]} 
-                      alt={category.name}
-                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
+                    <div className="w-full h-64 overflow-hidden">
+                      <img 
+                        src={category.image_url || dummyImages[index % dummyImages.length]} 
+                        alt={category.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    </div>
                     <div className="absolute top-4 right-4">
                       <Badge 
-                        className="bg-blue-600 text-white"
+                        className="text-white font-medium"
                         style={{ backgroundColor: category.color }}
                       >
                         {category.post_count || 0} articles
@@ -261,11 +262,11 @@ const Index = () => {
                   </div>
                   
                   <div className="p-6 h-32 flex flex-col justify-center">
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-blue-400 transition-colors text-white text-center">
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-slate-900 dark:text-white text-center">
                       {category.name}
                     </h3>
                     {category.description && (
-                      <p className="text-slate-400 text-sm line-clamp-2 text-center">
+                      <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-2 text-center">
                         {category.description}
                       </p>
                     )}
