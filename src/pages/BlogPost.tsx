@@ -154,25 +154,7 @@ const BlogPost = () => {
         const languageLabel = lang || 'code';
         const cleanCode = code.trim();
         const codeId = Math.random().toString(36).substr(2, 9);
-        return `<div class="relative my-6 rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-lg">
-          <div class="flex items-center justify-between px-4 py-3 bg-slate-200 dark:bg-slate-700 border-b-2 border-slate-300 dark:border-slate-600">
-            <span class="text-sm font-semibold text-slate-700 dark:text-slate-300 capitalize">${languageLabel}</span>
-            <button 
-              onclick="copyCodeToClipboard('${codeId}')"
-              class="copy-btn flex items-center px-3 py-1.5 text-xs font-medium bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-400 dark:hover:bg-slate-500 transition-all duration-200"
-              id="copy-btn-${codeId}"
-            >
-              <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path>
-                <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path>
-              </svg>
-              Copy
-            </button>
-          </div>
-          <div class="p-4 overflow-x-auto bg-slate-50 dark:bg-slate-900">
-            <pre class="text-sm leading-relaxed"><code id="code-${codeId}" class="text-slate-800 dark:text-slate-200" style="font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; line-height: 1.6;">${cleanCode}</code></pre>
-          </div>
-        </div>`;
+        return `<div class="relative my-6 rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-lg"><div class="flex items-center justify-between px-4 py-3 bg-slate-200 dark:bg-slate-700 border-b-2 border-slate-300 dark:border-slate-600"><span class="text-sm font-semibold text-slate-700 dark:text-slate-300 capitalize">${languageLabel}</span><button onclick="copyCodeToClipboard('${codeId}')"class="copy-btn flex items-center px-3 py-1.5 text-xs font-medium bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-400 dark:hover:bg-slate-500 transition-all duration-200"id="copy-btn-${codeId}"><svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>Copy</button></div><div class="p-4 overflow-x-auto bg-slate-50 dark:bg-slate-900"><pre class="text-sm leading-relaxed"><code id="code-${codeId}" class="text-slate-800 dark:text-slate-200" style="font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; line-height: 1.6;">${cleanCode}</code></pre></div></div>`;
       })
       .replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded border border-slate-300 dark:border-slate-600" style="font-family: \'JetBrains Mono\', \'Fira Code\', \'Courier New\', monospace;">$1</code>')
       .replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>')
