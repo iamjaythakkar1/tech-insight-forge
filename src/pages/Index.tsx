@@ -169,7 +169,7 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {recentPosts.map((post, index) => (
             <Link key={post.id} to={`/blog/${post.slug}`} className="block group">
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-white/80 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500 backdrop-blur-sm shadow-lg">
                 <CardContent className="p-0">
                   <div className="relative">
                     <img 
@@ -240,14 +240,14 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {categories.map((category, index) => (
             <Link key={category.id} to={`/category/${category.slug}`} className="block group">
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600">
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-white/80 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500 backdrop-blur-sm shadow-lg">
                 <CardContent className="p-0">
                   <div className="relative">
-                    <div className="w-full h-64 overflow-hidden">
+                    <div className="w-full h-64 overflow-hidden flex items-center justify-center bg-slate-100 dark:bg-slate-700">
                       <img 
                         src={category.image_url || dummyImages[index % dummyImages.length]} 
                         alt={category.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-auto h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
                       />
                     </div>
