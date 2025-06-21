@@ -164,11 +164,57 @@ export type Database = {
           },
         ]
       }
+      post_reactions: {
+        Row: {
+          blog_id: string
+          created_at: string
+          id: string
+          reaction_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blog_id: string
+          created_at?: string
+          id?: string
+          reaction_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blog_id?: string
+          created_at?: string
+          id?: string
+          reaction_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reactions_blog_id_fkey"
+            columns: ["blog_id"]
+            isOneToOne: false
+            referencedRelation: "blogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_reaction_counts: {
+        Args: { post_id: string }
+        Returns: {
+          like_count: number
+          dislike_count: number
+        }[]
+      }
+      get_user_reaction: {
+        Args: { post_id: string; user_id_param: string }
+        Returns: string
+      }
       increment_view_count: {
         Args: { post_id: string }
         Returns: undefined
