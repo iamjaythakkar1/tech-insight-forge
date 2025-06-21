@@ -30,14 +30,11 @@ export const BlogReactions = ({ postId }: BlogReactionsProps) => {
         setDislikeCount(Number(counts[0].dislike_count));
       }
 
-      // Get user's current reaction (if authenticated)
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: userReactionData } = await supabase.rpc('get_user_reaction', { 
-          post_id: postId, 
-          user_id_param: user.id 
-        });
-        setUserReaction(userReactionData);
+      // Check if user has reacted (from localStorage for non-authenticated users)
+      const userReactionKey = `reaction_${postId}`;
+      const storedReaction = localStorage.getItem(userReactionKey);
+      if (storedReaction === 'like' || storedReaction === 'dislike') {
+        setUserReaction(storedReaction);
       }
     } catch (error) {
       console.error('Error fetching reaction data:', error);
@@ -47,27 +44,14 @@ export const BlogReactions = ({ postId }: BlogReactionsProps) => {
   };
 
   const handleReaction = async (type: 'like' | 'dislike') => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to react to this post",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
+      const userReactionKey = `reaction_${postId}`;
+      
       if (userReaction === type) {
         // Remove reaction
-        await supabase
-          .from('post_reactions')
-          .delete()
-          .eq('blog_id', postId)
-          .eq('user_id', user.id);
-        
         setUserReaction(null);
+        localStorage.removeItem(userReactionKey);
+        
         if (type === 'like') {
           setLikeCount(prev => Math.max(0, prev - 1));
         } else {
@@ -80,19 +64,17 @@ export const BlogReactions = ({ postId }: BlogReactionsProps) => {
         });
       } else {
         // Add or update reaction
-        await supabase
-          .from('post_reactions')
-          .upsert({
-            blog_id: postId,
-            user_id: user.id,
-            reaction_type: type
-          });
-
+        const previousReaction = userReaction;
+        
+        // Update localStorage
+        localStorage.setItem(userReactionKey, type);
+        setUserReaction(type);
+        
         // Update counts based on previous reaction
-        if (userReaction === 'like' && type === 'dislike') {
+        if (previousReaction === 'like' && type === 'dislike') {
           setLikeCount(prev => Math.max(0, prev - 1));
           setDislikeCount(prev => prev + 1);
-        } else if (userReaction === 'dislike' && type === 'like') {
+        } else if (previousReaction === 'dislike' && type === 'like') {
           setDislikeCount(prev => Math.max(0, prev - 1));
           setLikeCount(prev => prev + 1);
         } else {
@@ -103,7 +85,6 @@ export const BlogReactions = ({ postId }: BlogReactionsProps) => {
           }
         }
         
-        setUserReaction(type);
         toast({
           title: `${type === 'like' ? 'Liked' : 'Disliked'}!`,
           description: `You ${type === 'like' ? 'liked' : 'disliked'} this post`

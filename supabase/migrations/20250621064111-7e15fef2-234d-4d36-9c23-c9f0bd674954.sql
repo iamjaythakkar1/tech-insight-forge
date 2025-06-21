@@ -13,7 +13,7 @@ CREATE TABLE public.post_reactions (
 -- Add RLS policies
 ALTER TABLE public.post_reactions ENABLE ROW LEVEL SECURITY;
 
--- Policy to allow users to view all reactions (for counts)
+-- Policy to allow anyone (including anonymous users) to view all reactions for counts
 CREATE POLICY "Anyone can view reactions" 
   ON public.post_reactions 
   FOR SELECT 
@@ -37,13 +37,14 @@ CREATE POLICY "Users can delete their own reactions"
   FOR DELETE 
   USING (auth.uid() IS NOT NULL);
 
--- Create function to get reaction counts for a blog post
+-- Create function to get reaction counts for a blog post (accessible to all users)
 CREATE OR REPLACE FUNCTION public.get_reaction_counts(post_id UUID)
 RETURNS TABLE (
   like_count BIGINT,
   dislike_count BIGINT
 )
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
   RETURN QUERY
@@ -59,6 +60,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.get_user_reaction(post_id UUID, user_id_param UUID)
 RETURNS TEXT
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 DECLARE
   reaction TEXT;
