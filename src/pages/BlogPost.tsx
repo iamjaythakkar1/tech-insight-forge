@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, Clock, Eye, ArrowLeft, Share2, Copy, Check } from "lucide-react";
+import { Calendar, Clock, Eye, ArrowLeft, Share2, ThumbsUp, ThumbsDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface BlogPost {
   id: string;
@@ -24,6 +24,7 @@ interface BlogPost {
     color: string;
   } | null;
 }
+
 interface RelatedPost {
   id: string;
   title: string;
@@ -36,28 +37,46 @@ interface RelatedPost {
   } | null;
 }
 
+interface NavigationPost {
+  slug: string;
+  title: string;
+}
+
 const BlogPost = () => {
-  const {
-    slug
-  } = useParams();
-  const {
-    toast
-  } = useToast();
+  const { slug } = useParams();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const dummyImages = ["https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=250&fit=crop", "https://images.unsplash.com/photo-1484417894907-623942c8ee29?w=400&h=250&fit=crop", "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=400&h=250&fit=crop"];
+  const [likeCount, setLikeCount] = useState(0);
+  const [dislikeCount, setDislikeCount] = useState(0);
+  const [userReaction, setUserReaction] = useState<'like' | 'dislike' | null>(null);
+  const [nextPost, setNextPost] = useState<NavigationPost | null>(null);
+  const [previousPost, setPreviousPost] = useState<NavigationPost | null>(null);
+  
+  const dummyImages = [
+    "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1484417894907-623942c8ee29?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=400&h=250&fit=crop"
+  ];
+
   useEffect(() => {
     if (slug) {
       fetchPost();
     }
   }, [slug]);
+
+  useEffect(() => {
+    // Fix scroll to top when component mounts or slug changes
+    window.scrollTo(0, 0);
+  }, [slug]);
+
   const fetchPost = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('blogs').select(`
+      const { data, error } = await supabase
+        .from('blogs')
+        .select(`
           id,
           title,
           content,
@@ -71,16 +90,26 @@ const BlogPost = () => {
             name,
             color
           )
-        `).eq('slug', slug).eq('status', 'published').single();
+        `)
+        .eq('slug', slug)
+        .eq('status', 'published')
+        .single();
+
       if (error) throw error;
+
       if (data) {
         setPost(data);
-        await supabase.rpc('increment_view_count', {
-          post_id: data.id
-        });
+        await supabase.rpc('increment_view_count', { post_id: data.id });
+        
         if (data.categories) {
           fetchRelatedPosts(data.id);
         }
+        
+        // Fetch navigation posts and reaction counts
+        await Promise.all([
+          fetchNavigationPosts(data.created_at),
+          fetchReactionCounts(data.id)
+        ]);
       }
     } catch (error) {
       console.error('Error fetching post:', error);
@@ -88,12 +117,92 @@ const BlogPost = () => {
       setLoading(false);
     }
   };
+
+  const fetchNavigationPosts = async (currentPostDate: string) => {
+    try {
+      // Fetch next post (newer)
+      const { data: nextData } = await supabase
+        .from('blogs')
+        .select('slug, title')
+        .eq('status', 'published')
+        .gt('created_at', currentPostDate)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
+
+      if (nextData) {
+        setNextPost(nextData);
+      }
+
+      // Fetch previous post (older)
+      const { data: prevData } = await supabase
+        .from('blogs')
+        .select('slug, title')
+        .eq('status', 'published')
+        .lt('created_at', currentPostDate)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (prevData) {
+        setPreviousPost(prevData);
+      }
+    } catch (error) {
+      console.error('Error fetching navigation posts:', error);
+    }
+  };
+
+  const fetchReactionCounts = async (postId: string) => {
+    // For now, using dummy data since we haven't created the reactions table
+    // This would be replaced with actual Supabase queries once the reactions table is created
+    setLikeCount(Math.floor(Math.random() * 50));
+    setDislikeCount(Math.floor(Math.random() * 10));
+  };
+
+  const handleReaction = async (type: 'like' | 'dislike') => {
+    if (!post) return;
+
+    // Toggle reaction
+    if (userReaction === type) {
+      setUserReaction(null);
+      if (type === 'like') {
+        setLikeCount(prev => Math.max(0, prev - 1));
+      } else {
+        setDislikeCount(prev => Math.max(0, prev - 1));
+      }
+    } else {
+      // If user had opposite reaction, decrease that count
+      if (userReaction === 'like' && type === 'dislike') {
+        setLikeCount(prev => Math.max(0, prev - 1));
+        setDislikeCount(prev => prev + 1);
+      } else if (userReaction === 'dislike' && type === 'like') {
+        setDislikeCount(prev => Math.max(0, prev - 1));
+        setLikeCount(prev => prev + 1);
+      } else {
+        // No previous reaction
+        if (type === 'like') {
+          setLikeCount(prev => prev + 1);
+        } else {
+          setDislikeCount(prev => prev + 1);
+        }
+      }
+      setUserReaction(type);
+    }
+
+    toast({
+      title: userReaction === type ? "Reaction removed" : `${type === 'like' ? 'Liked' : 'Disliked'}!`,
+      description: userReaction === type ? "Your reaction has been removed" : `You ${type === 'like' ? 'liked' : 'disliked'} this post`
+    });
+
+    // Here you would make the API call to save the reaction to the database
+    // await supabase.from('post_reactions').upsert({ post_id: post.id, user_id, reaction_type: type });
+  };
+
   const fetchRelatedPosts = async (currentPostId: string) => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('blogs').select(`
+      const { data, error } = await supabase
+        .from('blogs')
+        .select(`
           id,
           title,
           slug,
@@ -103,13 +212,18 @@ const BlogPost = () => {
             name,
             color
           )
-        `).eq('status', 'published').neq('id', currentPostId).limit(3);
+        `)
+        .eq('status', 'published')
+        .neq('id', currentPostId)
+        .limit(3);
+
       if (error) throw error;
       setRelatedPosts(data || []);
     } catch (error) {
       console.error('Error fetching related posts:', error);
     }
   };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB', {
@@ -118,6 +232,7 @@ const BlogPost = () => {
       day: 'numeric'
     });
   };
+
   const sharePost = async () => {
     if (navigator.share) {
       try {
@@ -141,66 +256,7 @@ const BlogPost = () => {
       }
     }
   };
-  const formatContentForDisplay = (content: string) => {
-    let html = content
-      .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mb-4 mt-6 text-slate-800 dark:text-white">$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mb-6 mt-8 text-slate-800 dark:text-white">$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mb-8 mt-10 text-slate-800 dark:text-white">$1</h1>')
-      .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-bold text-slate-800 dark:text-white">$1</strong>')
-      .replace(/\*(.*?)\*/gim, '<em class="italic text-slate-700 dark:text-slate-200">$1</em>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline">$1</a>')
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/gim, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-6 shadow-lg border border-slate-200 dark:border-slate-700" />')
-      .replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
-        const languageLabel = lang || 'code';
-        const cleanCode = code.trim();
-        const codeId = Math.random().toString(36).substr(2, 9);
-        return `<div class="relative my-6 rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 overflow-hidden shadow-lg"><div class="flex items-center justify-between px-4 py-3 bg-slate-200 dark:bg-slate-700 border-b-2 border-slate-300 dark:border-slate-600"><span class="text-sm font-semibold text-slate-700 dark:text-slate-300 capitalize">${languageLabel}</span><button onclick="copyCodeToClipboard('${codeId}')"class="copy-btn flex items-center px-3 py-1.5 text-xs font-medium bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-md hover:bg-slate-400 dark:hover:bg-slate-500 transition-all duration-200"id="copy-btn-${codeId}"><svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path></svg>Copy</button></div><div class="p-4 overflow-x-auto bg-slate-50 dark:bg-slate-900"><pre class="text-sm leading-relaxed"><code id="code-${codeId}" class="text-slate-800 dark:text-slate-200" style="font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; line-height: 1.6;">${cleanCode}</code></pre></div></div>`;
-      })
-      .replace(/`([^`]+)`/gim, '<code class="px-2 py-1 text-sm bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded border border-slate-300 dark:border-slate-600" style="font-family: \'JetBrains Mono\', \'Fira Code\', \'Courier New\', monospace;">$1</code>')
-      .replace(/^\* (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$1</li>')
-      .replace(/^(\d+)\. (.+)$/gim, '<li class="mb-2 text-slate-700 dark:text-slate-300">$2</li>')
-      .replace(/^> (.+)$/gim, '<blockquote class="border-l-4 border-blue-500 pl-6 py-2 my-4 italic text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-r">$1</blockquote>')
-      .replace(/\n/gim, '<br />');
-    html = html.replace(/(<li[^>]*>.*<\/li>)/gims, '<ul class="list-disc pl-6 mb-4 space-y-1">$1</ul>');
-    return html;
-  };
-  useEffect(() => {
-    (window as any).copyCodeToClipboard = async (codeId: string) => {
-      try {
-        const codeElement = document.getElementById(`code-${codeId}`);
-        const copyBtn = document.getElementById(`copy-btn-${codeId}`);
-        if (codeElement && copyBtn) {
-          await navigator.clipboard.writeText(codeElement.textContent || '');
-          const originalHTML = copyBtn.innerHTML;
-          copyBtn.innerHTML = `
-            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-            </svg>
-            Copied!
-          `;
-          copyBtn.classList.add('bg-green-200', 'dark:bg-green-700', 'text-green-800', 'dark:text-green-200');
-          setTimeout(() => {
-            copyBtn.innerHTML = originalHTML;
-            copyBtn.classList.remove('bg-green-200', 'dark:bg-green-700', 'text-green-800', 'dark:text-green-200');
-          }, 2000);
-          toast({
-            title: "Code copied!",
-            description: "Code has been copied to clipboard"
-          });
-        }
-      } catch (error) {
-        console.error('Error copying code:', error);
-        toast({
-          title: "Copy failed",
-          description: "Failed to copy code to clipboard",
-          variant: "destructive"
-        });
-      }
-    };
-    return () => {
-      delete (window as any).copyCodeToClipboard;
-    };
-  }, [toast]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -212,6 +268,7 @@ const BlogPost = () => {
       </div>
     );
   }
+
   if (!post) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -234,6 +291,7 @@ const BlogPost = () => {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Navigation />
@@ -301,8 +359,79 @@ const BlogPost = () => {
             />
           </div>
 
+          {/* HTML Content Section */}
           <div className="prose prose-lg max-w-none dark:prose-invert mb-12">
-            <div dangerouslySetInnerHTML={{ __html: formatContentForDisplay(post.content) }} />
+            <div 
+              className="blog-content text-slate-700 dark:text-slate-300 leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: post.content }} 
+            />
+          </div>
+
+          {/* Like/Dislike Section */}
+          <div className="flex items-center justify-center gap-4 py-8 border-t border-slate-200 dark:border-slate-700">
+            <Button
+              variant={userReaction === 'like' ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleReaction('like')}
+              className="flex items-center gap-2"
+            >
+              <ThumbsUp className="h-4 w-4" />
+              <span>{likeCount}</span>
+            </Button>
+            <Button
+              variant={userReaction === 'dislike' ? "destructive" : "outline"}
+              size="sm"
+              onClick={() => handleReaction('dislike')}
+              className="flex items-center gap-2"
+            >
+              <ThumbsDown className="h-4 w-4" />
+              <span>{dislikeCount}</span>
+            </Button>
+          </div>
+
+          {/* Navigation Section */}
+          <div className="flex items-center justify-between py-8 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex-1">
+              {previousPost ? (
+                <Link to={`/blog/${previousPost.slug}`}>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <ChevronLeft className="h-4 w-4" />
+                    <div className="text-left">
+                      <div className="text-xs text-slate-500">Previous Article</div>
+                      <div className="font-medium truncate max-w-48">{previousPost.title}</div>
+                    </div>
+                  </Button>
+                </Link>
+              ) : (
+                <Button variant="outline" disabled className="flex items-center gap-2">
+                  <ChevronLeft className="h-4 w-4" />
+                  <div className="text-left">
+                    <div className="text-xs text-slate-500">No Previous Article</div>
+                  </div>
+                </Button>
+              )}
+            </div>
+            
+            <div className="flex-1 flex justify-end">
+              {nextPost ? (
+                <Link to={`/blog/${nextPost.slug}`}>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <div className="text-right">
+                      <div className="text-xs text-slate-500">Next Article</div>
+                      <div className="font-medium truncate max-w-48">{nextPost.title}</div>
+                    </div>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              ) : (
+                <Button variant="outline" disabled className="flex items-center gap-2">
+                  <div className="text-right">
+                    <div className="text-xs text-slate-500">No Next Article</div>
+                  </div>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </article>
 
