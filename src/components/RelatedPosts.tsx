@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock } from "lucide-react";
+import { BlogImage } from "./BlogImage";
 
 interface RelatedPost {
   id: string;
@@ -10,6 +11,7 @@ interface RelatedPost {
   slug: string;
   excerpt: string;
   read_time: number;
+  featured_image?: string;
   categories: {
     name: string;
     color: string;
@@ -33,11 +35,12 @@ export const RelatedPosts = ({ posts, dummyImages }: RelatedPostsProps) => {
             <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-white/80 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500 backdrop-blur-sm shadow-lg">
               <CardContent className="p-0">
                 <div className="relative">
-                  <img 
-                    src={dummyImages[index % dummyImages.length]} 
+                  <BlogImage
+                    blog={relatedPost}
+                    dummyImages={dummyImages}
+                    index={index}
                     alt={relatedPost.title}
                     className="w-full h-32 object-cover"
-                    loading="lazy"
                   />
                   {relatedPost.categories && (
                     <div className="absolute top-2 left-2">

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { BlogImage } from "@/components/BlogImage";
 import { Calendar, Clock, Eye, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -172,11 +174,12 @@ const Index = () => {
               <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 h-full bg-white/80 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500 backdrop-blur-sm shadow-lg">
                 <CardContent className="p-0">
                   <div className="relative">
-                    <img 
-                      src={post.featured_image || dummyImages[index % dummyImages.length]} 
+                    <BlogImage
+                      blog={post}
+                      dummyImages={dummyImages}
+                      index={index}
                       alt={post.title}
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
                     />
                     {post.categories && (
                       <div className="absolute top-4 left-4">

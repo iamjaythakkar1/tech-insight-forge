@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { BlogImage } from "@/components/BlogImage";
 import { Calendar, Clock, Eye, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -307,11 +308,12 @@ const Articles = () => {
               <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group cursor-pointer h-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600">
                 <CardContent className="p-0">
                   <div className="relative">
-                    <img 
-                      src={post.featured_image || dummyImages[index % dummyImages.length]} 
+                    <BlogImage
+                      blog={post}
+                      dummyImages={dummyImages}
+                      index={index}
                       alt={post.title}
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
                     />
                     <div className="absolute top-4 left-4 flex gap-2">
                       {isAdminView && post.status && (

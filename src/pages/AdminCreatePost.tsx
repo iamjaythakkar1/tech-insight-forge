@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { RichEditor } from "@/components/RichEditor";
+import { BlogImage } from "@/components/BlogImage";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Clock, Eye, Copy, Check } from "lucide-react";
@@ -49,6 +50,12 @@ const AdminCreatePost = () => {
     status: 'draft',
     featured_image: ""
   });
+
+  const dummyImages = [
+    "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1484417894907-623942c8ee29?w=400&h=250&fit=crop",
+    "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?w=400&h=250&fit=crop"
+  ];
 
   useEffect(() => {
     fetchCategories();
@@ -276,15 +283,14 @@ const AdminCreatePost = () => {
           </div>
 
           <article>
-            {formData.featured_image && (
-              <div className="mb-8">
-                <img 
-                  src={formData.featured_image} 
-                  alt={formData.title}
-                  className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg"
-                />
-              </div>
-            )}
+            <div className="mb-8">
+              <BlogImage
+                blog={formData}
+                dummyImages={dummyImages}
+                alt={formData.title}
+                className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg"
+              />
+            </div>
             
             <header className="mb-8">
               {selectedCategory && (
@@ -395,7 +401,7 @@ const AdminCreatePost = () => {
                   id="featured_image"
                   value={formData.featured_image}
                   onChange={(e) => handleInputChange('featured_image', e.target.value)}
-                  placeholder="https://example.com/image.jpg"
+                  placeholder="https://example.com/image.jpg (leave empty to auto-generate from title)"
                 />
               </div>
 

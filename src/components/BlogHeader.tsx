@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Eye, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { BlogImage } from "./BlogImage";
 
 interface BlogHeaderProps {
   post: {
@@ -100,8 +101,9 @@ export const BlogHeader = ({ post, dummyImages }: BlogHeaderProps) => {
       </div>
 
       <div className="mb-8">
-        <img 
-          src={post.featured_image || dummyImages[0]} 
+        <BlogImage
+          blog={post}
+          dummyImages={dummyImages}
           alt={post.title}
           className="w-full h-auto object-contain rounded-lg shadow-lg max-h-96"
         />
