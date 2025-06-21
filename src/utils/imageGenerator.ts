@@ -1,4 +1,3 @@
-
 interface GenerateImageOptions {
   title: string;
   width?: number;
@@ -10,7 +9,7 @@ interface GenerateImageOptions {
 
 export const generateTitleImage = ({
   title,
-  width = 800,
+  width = 900,
   height = 400,
   backgroundColor = '#1e293b',
   textColor = '#ffffff',
@@ -31,68 +30,57 @@ export const generateTitleImage = ({
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, width, height);
 
-    // Set text properties
-    ctx.fillStyle = textColor;
+    // Draw background gradient (blue to purple)
+    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    gradient.addColorStop(0, '#2563eb'); // Blue
+    gradient.addColorStop(1, '#9333ea'); // Purple
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+
+    // Set text properties (white color, bold, large font)
+    ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    
-    // Calculate font size based on title length and canvas size
-    const maxWidth = width * 0.9;
+
+    // Calculate max font size for multiline text
+    const maxWidth = width * 0.85;
     let currentFontSize = fontSize;
-    
-    // Start with the given font size and decrease if text is too wide
-    do {
+    let lines: string[] = [];
+    let fits = false;
+    while (!fits && currentFontSize > 24) {
       ctx.font = `bold ${currentFontSize}px system-ui, -apple-system, sans-serif`;
-      const textMetrics = ctx.measureText(title);
-      if (textMetrics.width <= maxWidth) {
-        break;
-      }
-      currentFontSize -= 2;
-    } while (currentFontSize > 16);
-
-    // Handle long titles by wrapping text
-    const words = title.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-
-    for (const word of words) {
-      const testLine = currentLine + (currentLine ? ' ' : '') + word;
-      const testMetrics = ctx.measureText(testLine);
-      
-      if (testMetrics.width <= maxWidth) {
-        currentLine = testLine;
-      } else {
-        if (currentLine) {
-          lines.push(currentLine);
-          currentLine = word;
+      // Try to wrap text
+      const words = title.split(' ');
+      const tempLines: string[] = [];
+      let currentLine = '';
+      for (const word of words) {
+        const testLine = currentLine ? currentLine + ' ' + word : word;
+        if (ctx.measureText(testLine).width <= maxWidth) {
+          currentLine = testLine;
         } else {
-          // Single word is too long, add it anyway
-          lines.push(word);
+          if (currentLine) tempLines.push(currentLine);
+          currentLine = word;
         }
       }
+      if (currentLine) tempLines.push(currentLine);
+      // Check if all lines fit vertically
+      const lineHeight = currentFontSize * 1.2;
+      const totalTextHeight = tempLines.length * lineHeight;
+      if (totalTextHeight <= height * 0.8) {
+        fits = true;
+        lines = tempLines;
+      } else {
+        currentFontSize -= 2;
+      }
     }
-    
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-
-    // Calculate starting Y position for centered text
+    ctx.font = `bold ${currentFontSize}px system-ui, -apple-system, sans-serif`;
     const lineHeight = currentFontSize * 1.2;
     const totalTextHeight = lines.length * lineHeight;
     const startY = (height - totalTextHeight) / 2 + lineHeight / 2;
-
-    // Draw each line
     lines.forEach((line, index) => {
       const y = startY + (index * lineHeight);
       ctx.fillText(line, width / 2, y);
     });
-
-    // Add subtle gradient overlay for better visual appeal
-    const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.1)');
-    gradient.addColorStop(1, 'rgba(147, 51, 234, 0.1)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
 
     return canvas.toDataURL('image/png', 0.9);
   } catch (error) {
