@@ -185,12 +185,7 @@ const Auth = () => {
                 </form>
               </TabsContent>
             </Tabs>
-            
-            <div className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
-              <p>Demo admin credentials:</p>
-              <p>Email: admin@techforge.com</p>
-              <p>Password: admin123</p>
-            </div>
+
           </CardContent>
         </Card>
       </div>
